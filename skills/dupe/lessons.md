@@ -167,3 +167,25 @@ Key design decisions:
 
 Official docs confirm: skills can bundle and run scripts in any language, and all files
 in the skill directory are included in the plugin cache on install.
+
+## Lesson 24: Scripts must NOT use IIFE wrappers
+
+Playwright MCP's `browser_evaluate` wraps your code in `() => { ... }` automatically.
+If the script uses an IIFE pattern `(function() { ... return result; })()`, the IIFE's
+return value gets swallowed — the outer arrow function has no `return`, so the result
+is `undefined`. Scripts must use bare `return` statements at the end so they work
+inside Playwright's wrapper.
+
+## Lesson 25: Use Write tool for JSON caching, never Bash/Python
+
+Writing extraction JSON to disk via Bash generates 100+ line Python scripts in the
+permission prompt. Users see an intimidating wall of code they can't evaluate. The
+Write tool does the same thing with a clean one-line prompt: "Write to
+/tmp/dupe-extraction-ramp.json". Always prefer Write for file creation.
+
+## Lesson 26: Measure time-to-build as a quality metric
+
+End-to-end wall clock time from `/dupe <url>` to verified clone is a core quality
+metric. Fewer tool calls = less latency. Fewer permission prompts = less user
+friction. Pre-built scripts should reduce both. Track this per site in
+`tests/{site}/metrics.json` alongside tool call counts and extraction JSON size.
