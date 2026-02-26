@@ -210,10 +210,12 @@ If BOTH Glob searches fail, stop and tell the user:
 
 ### Step 2.1: Structure Extraction
 
-Execute `extract-structure.js` as ONE `browser_evaluate` call:
+Execute `extract-structure.js` as ONE `browser_evaluate` call. The scripts
+contain bare `return` statements (no IIFE wrapper) — Playwright MCP wraps
+them in `() => { ... }` automatically. Pass the script contents directly:
 
 ```
-browser_evaluate → [contents of extract-structure.js]
+browser_evaluate → () => { [contents of extract-structure.js] }
 ```
 
 This single call returns `{ structure, contentInventory, textNodes }`:
