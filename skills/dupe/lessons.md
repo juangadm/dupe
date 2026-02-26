@@ -145,3 +145,25 @@ A lesson that stays in lessons.md but doesn't update SKILL.md will repeat on the
 next clone. Every lesson must trace to a specific SKILL.md rule, extraction step,
 or validation check. If there's no structural change to prevent recurrence, the
 lesson is incomplete.
+
+## Lesson 23: Pre-built extraction scripts beat inline JS in skill prompts
+
+Inline JS in SKILL.md meant Claude regenerated extraction code from prose descriptions
+on every run — 8+ separate `browser_evaluate` calls per page, each one an LLM-mediated
+roundtrip where Claude writes JS from scratch. This was slow, inconsistent across runs,
+and burned context window on boilerplate.
+
+The fix: bundle extraction JS as standalone `.js` files in `scripts/`, load them via
+Glob + Read at runtime, and pass the file contents to `browser_evaluate`. This reduces
+static extraction to 2 calls per page (structure + visual) with deterministic code.
+
+Key design decisions:
+- Scripts use `var` and `Array.from()` instead of `const`/`let`/spread — broader
+  browser compatibility in Playwright's evaluate context
+- Each script includes a size guard (20KB limit, truncates with `_truncated` flag)
+- Hover and interaction scripts are parameterized (SELECTOR_PLACEHOLDER / BOUNDS_PLACEHOLDER)
+  because they need per-element customization after browser_hover/browser_click
+- Fallback to `extraction-reference.md` if Glob can't find scripts (plugin cache issue)
+
+Official docs confirm: skills can bundle and run scripts in any language, and all files
+in the skill directory are included in the plugin cache on install.
