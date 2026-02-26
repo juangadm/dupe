@@ -38,29 +38,22 @@ Before navigating to any URL, ask the user:
 
 > "What do you want to clone?
 >
-> 1. **Single component** — One element (navbar, hero, pricing table, footer)
-> 2. **Single page** — One complete page, static layout only
-> 3. **Page with interactions** — Single page including dropdowns, modals, tabs
-> 4. **Multi-page shell** — Layout + navigation across 2-3 pages
+> 1. **Full page** — One complete page with all interactions (dropdowns, modals, tabs)
+> 2. **Multi-page app** — Sidebar/nav + multiple pages with all interactions
 >
-> The larger the scope, the more tokens and time. I recommend starting with a
-> single component or page."
+> Which pages and sections should I include?"
 
-Then ask: **"Which areas should I focus on first?"**
-
-Not every clone needs all interactions. A landing page doesn't need dropdown
-extraction. A dashboard doesn't need photo carousels. Let the user prioritize.
+Dupe doesn't do half-measures. Every clone includes interactions by default —
+static replicas feel dead. The only question is how many pages.
 
 ### Scope → Phase Mapping
 
 | Scope | Phases |
 |-------|--------|
-| Single component | 1 → simplified 2 → 4 |
-| Single page | 1 → 2 → 4 |
-| Page with interactions | 1 → 2 → 3 → 4 |
-| Multi-page shell | 1 → 2 → 3 → 4, repeated per page |
+| Full page | 1 → 2 → 3 → 4 |
+| Multi-page app | 1 → 2 → 3 → 4, repeated per page (shared layout extracted once) |
 
-Store the user's scope choice — reference it throughout to avoid over-extracting.
+Store the user's scope choice and page list — reference it throughout.
 
 ---
 
