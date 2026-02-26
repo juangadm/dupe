@@ -1,0 +1,118 @@
+{
+  "page": "try.ramp.com/home/personal-expenses/all",
+  "viewport": "1920x1080",
+  "tabs": {
+    "allTab": {
+      "text": "All",
+      "fontSize": "16px",
+      "fontWeight": "300",
+      "activeColor": "rgb(46, 46, 39)",
+      "inactiveColor": "rgb(112, 112, 98)",
+      "padding": "0px 8px",
+      "height": 44
+    },
+    "reimbursementsTab": {
+      "text": "Reimbursements",
+      "url": "/home/personal-expenses/reimbursements",
+      "fontSize": "16px",
+      "fontWeight": "300"
+    }
+  },
+  "allTabTable": {
+    "totalColumns": 12,
+    "totalRows": 28,
+    "footer": "1–28 of 28 · $8,897.26",
+    "headerStyle": {
+      "fontSize": "16px",
+      "fontWeight": "700",
+      "color": "rgb(112, 112, 98)",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "height": 32,
+      "padding": "0px 12px"
+    },
+    "cellStyle": {
+      "fontSize": "16px",
+      "fontWeight": "300",
+      "color": "rgb(46, 46, 39)",
+      "backgroundColor": "rgb(255, 255, 255)",
+      "height": 64,
+      "padding": "0px 1px"
+    },
+    "columns": [
+      { "index": 0, "header": "checkbox", "width": 56, "sticky": "left:0", "zIndex": 2, "textAlign": "center" },
+      { "index": 1, "header": "Spent on", "width": 282, "sticky": "left:56px", "zIndex": 2, "textAlign": "left" },
+      { "index": 2, "header": "Transaction date", "width": 136, "sticky": false, "textAlign": "left" },
+      { "index": 3, "header": "Payment type", "width": 176, "sticky": false, "textAlign": "left" },
+      { "index": 4, "header": "Status", "width": 184, "sticky": false, "textAlign": "left" },
+      { "index": 5, "header": "Spent from", "width": 248, "sticky": false, "textAlign": "left", "note": "Shows 'View limit' link" },
+      { "index": 6, "header": "Memo", "width": 280, "sticky": false, "textAlign": "left", "note": "Shows 'Edit' for empty" },
+      { "index": 7, "header": "Accounting Category", "width": 256, "sticky": false, "textAlign": "left", "note": "Renamed from 'Accounting'" },
+      { "index": 8, "header": "Policy Status", "width": 152, "sticky": false, "textAlign": "center", "note": "Shows 'View receipt' link — MISSING FROM CLONE" },
+      { "index": 9, "header": "(hidden/spacer)", "width": 0, "sticky": false, "note": "Zero-width column" },
+      { "index": 10, "header": "Amount", "width": 170, "sticky": "right:56px", "zIndex": 2, "textAlign": "right" },
+      { "index": 11, "header": "(action menu)", "width": 56, "sticky": "right:0", "zIndex": 2, "textAlign": "center", "note": "MISSING FROM CLONE" }
+    ],
+    "sampleRow": {
+      "checkbox": "",
+      "spentOn": "Tacombi / Missing items · Restaurants · David Wallace",
+      "transactionDate": "May 29, 2024",
+      "paymentType": "Virtual card (1169)",
+      "status": "Pending",
+      "spentFrom": "Office Supplies / View limit",
+      "memo": "Edit",
+      "accountingCategory": "Accounting Category",
+      "policyStatus": "View receipt",
+      "amount": "$135.40 USD",
+      "actionMenu": "(three dots menu)"
+    }
+  },
+  "reimbursementsTabTable": {
+    "url": "/home/personal-expenses/reimbursements",
+    "totalRows": 7,
+    "footer": "1–7 of 7",
+    "hasNewReimbursementButton": true,
+    "columns": [
+      { "header": "checkbox", "note": "Select all 2" },
+      { "header": "Spent on" },
+      { "header": "Amount" },
+      { "header": "Date" },
+      { "header": "Submission date" },
+      { "header": "Spent from" },
+      { "header": "Receipt", "note": "Shows 'View receipt' link" },
+      { "header": "Memo" },
+      { "header": "(empty)" },
+      { "header": "Action" },
+      { "header": "(empty)" }
+    ],
+    "groupedSections": [
+      {
+        "groupHeader": "Pending",
+        "count": 2,
+        "rows": [
+          { "spentOn": "612.17 miles", "amount": "$410.15 USD", "date": "May 22, 2024", "submission": "May 29, 2024", "memo": "Office supplies delivery" },
+          { "spentOn": "Uber", "amount": "$339.32 USD", "date": "May 23, 2024", "submission": "May 29, 2024", "memo": "Office commute" }
+        ]
+      },
+      {
+        "groupHeader": "Completed",
+        "rows": [
+          { "spentOn": "Ramp Restaurant", "amount": "$1,174.77 USD", "date": "May 27, 2024" },
+          { "spentOn": "Delta Airlines", "amount": "$3,104.06 USD", "date": "May 27, 2024" },
+          { "spentOn": "Ramp Restaurant", "amount": "$421.55 USD", "date": "May 27, 2024" },
+          { "spentOn": "Delta Airlines", "amount": "$2,490.50 USD", "date": "May 27, 2024" },
+          { "spentOn": "Best Buy", "amount": "$60.61 USD", "date": "May 24, 2024" }
+        ]
+      }
+    ],
+    "filterBar": {
+      "text": "Search and apply filters | Status | Add filter",
+      "note": "Different from All tab filter bar"
+    }
+  },
+  "pageHeader": {
+    "subtitle": "My Ramp",
+    "title": "Expenses",
+    "hasNewReimbursementButton": true,
+    "note": "New reimbursement button appears on Reimbursements tab"
+  }
+}

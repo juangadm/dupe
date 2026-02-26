@@ -1,0 +1,87 @@
+{
+  "page": "try.ramp.com/home/travel/bookings",
+  "viewport": "1920x1080",
+  "tabs": {
+    "active": {
+      "fontSize": "28px",
+      "fontWeight": "400",
+      "color": "rgb(46, 46, 39)",
+      "textDecoration": "underline"
+    },
+    "inactive": {
+      "fontSize": "28px",
+      "fontWeight": "400",
+      "color": "rgb(112, 112, 98)",
+      "textDecoration": "none"
+    },
+    "containerGap": "24px"
+  },
+  "dropdowns": {
+    "fontSize": "12px",
+    "fontWeight": "400",
+    "color": "rgb(46, 46, 39)",
+    "textDecoration": "underline"
+  },
+  "flightsForm": {
+    "dropdowns": ["Round-trip", "Economy"],
+    "fields": ["Where from?", "Where to?", "Departure (MM/DD/YYYY)", "Return (MM/DD/YYYY)"],
+    "hasSwapButton": true,
+    "searchButtonText": "Search flights"
+  },
+  "hotelsForm": {
+    "dropdowns": ["1 guest"],
+    "fields": ["Where would you like to stay?", "Check in (MM/DD/YYYY)", "Check out (MM/DD/YYYY)"],
+    "hasSwapButton": false,
+    "searchButtonText": "Search hotels"
+  },
+  "searchCard": {
+    "width": 1360,
+    "height": 226,
+    "padding": "0px",
+    "borderRadius": "8px",
+    "boxShadow": "rgba(0, 0, 0, 0.16) 10px 16px 40px 0px, rgba(0, 0, 0, 0.08) 40px 60px 72px 0px, rgba(0, 0, 0, 0.05) 84px 124px 90px 0px, rgba(145, 145, 123, 0.2) 0px 0px 0px 1px"
+  },
+  "searchButton": {
+    "width": 172,
+    "height": 56,
+    "padding": "0px 24px",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "backgroundColor": "rgb(228, 242, 34)"
+  },
+  "mapArea": {
+    "width": 1608,
+    "height": 494,
+    "y": 57,
+    "bottomY": 551,
+    "note": "Map extends below action cards - action cards sit on top with white backgrounds"
+  },
+  "actionCards": {
+    "width": 1200,
+    "height": 66,
+    "padding": "16px 24px",
+    "gap": "12px (marginTop: 12px between cards)",
+    "fontSize": "16px",
+    "fontWeight": "300",
+    "backgroundColor": "rgb(255, 255, 255)",
+    "firstCardY": 483,
+    "note": "Cards overlap with map area (map extends to y=551), white bg covers map",
+    "cards": [
+      {
+        "text": "Review your company's travel policy",
+        "leftIcon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" fill=\"none\" viewBox=\"0 0 16 16\"><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M7.833 14.833s5.334-2.666 5.334-6.666V3.5l-5.334-2-5.333 2v4.667c0 4 5.333 6.666 5.333 6.666Z\"></path><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M10.5 6.167 6.83 9.833l-1.497-1.5\"></path></svg>",
+        "rightIcon": "arrow-right"
+      },
+      {
+        "text": "Update your traveler profile for faster booking",
+        "leftIcon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"></path><circle cx=\"12\" cy=\"7\" r=\"4\"></circle></svg>",
+        "rightIcon": "arrow-right"
+      },
+      {
+        "text": "Learn more about booking travel on Ramp",
+        "leftIcon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"></path><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"></line></svg>",
+        "rightIcon": "link-external"
+      }
+    ]
+  }
+}

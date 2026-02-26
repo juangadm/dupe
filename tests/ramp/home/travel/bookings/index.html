@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>My Ramp — Travel</title>
+  <link rel="stylesheet" href="../../../variables.css">
+  <link rel="stylesheet" href="../../../styles.css">
+</head>
+<body>
+  <div id="root">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <!-- Top: Logo + Collapse -->
+        <div class="sidebar-header">
+          <a href="/home/" class="nav-item nav-item--icon-only" title="Home">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 56 56" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M56 47.778v.211L25.5 48v-.222c4.398-2.51 7.434-5.065 10.166-7.735h12.523L56 47.778ZM48.443 7.659 40.713 0h-.226s.13 14.274-12.85 27.255C14.938 39.961 0 39.99 0 39.99v.223l7.876 7.792s14.719.147 27.72-12.734C48.553 22.432 48.444 7.659 48.444 7.659Z"></path></svg>
+          </a>
+          <button class="nav-item nav-item--icon-only" title="Collapse navigation">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          </button>
+        </div>
+
+        <!-- Nav items -->
+        <nav class="sidebar-nav">
+          <!-- Search -->
+          <button class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span>Search</span>
+            <span class="nav-shortcut"><kbd>⌘</kbd><kbd>K</kbd></span>
+          </button>
+
+          <!-- Inbox -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+            <span>Inbox</span>
+            <span class="nav-badge">7</span>
+          </a>
+
+          <!-- Insights -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Insights</span>
+          </a>
+
+          <!-- My Ramp (active) -->
+          <a href="/home/" class="nav-item nav-item--active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M13.727 2.5H2.273C1.57 2.5 1 3.116 1 3.875v8.25c0 .76.57 1.375 1.273 1.375h11.454c.703 0 1.273-.616 1.273-1.375v-8.25c0-.76-.57-1.375-1.273-1.375Z"></path><path fill="currentColor" d="M1 5.6h14v1.25H1z"></path></svg>
+            <span>My Ramp</span>
+          </a>
+
+          <!-- Sub-items -->
+          <a href="/home/" class="nav-item nav-item--sub">
+            <span>Overview</span>
+          </a>
+          <a href="/home/personal-expenses/all/" class="nav-item nav-item--sub">
+            <span>Expenses</span>
+          </a>
+          <a href="/home/travel/bookings/" class="nav-item nav-item--sub nav-item--sub-active">
+            <span>Travel</span>
+          </a>
+
+          <!-- Expenses (global) -->
+          <a href="/home/personal-expenses/all/" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M7.999 4.5v7M9.59 5.773H7.203a1.114 1.114 0 0 0 0 2.227h1.591a1.114 1.114 0 0 1 0 2.227H6.09"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M8 14.667A6.667 6.667 0 1 0 8 1.334a6.667 6.667 0 0 0 0 13.333Z"></path></svg>
+            <span>Expenses</span>
+          </a>
+
+          <!-- Spend programs -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M11.613 6.375 7.38 12.032h3.81l-.424 3.343L15 10.146h-3.81l.424-3.771Z"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M5 13.5H2.556C1.696 13.5 1 13.008 1 12.4V3.6c0-.608.696-1.1 1.556-1.1h10.888c.86 0 1.556.492 1.556 1.1V7"></path><path fill="currentColor" d="M1.01 5.6H8.5l-1 1.25H1.01V5.6Z"></path></svg>
+            <span>Spend programs</span>
+          </a>
+
+          <!-- Procurement -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            <span>Procurement</span>
+          </a>
+
+          <!-- Bill Pay -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M9.333 1.333v4h4M7.667 8.667H5.333M6.667 11.333H5.333M6.667 6H5.333"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M7.75 14.667H4a1.334 1.334 0 0 1-1.333-1.334V2.667A1.333 1.333 0 0 1 4 1.333h5.333l4 4V7"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 15.333a3.333 3.333 0 1 0 0-6.666 3.333 3.333 0 0 0 0 6.666ZM12.09 10v4"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M13 10.727h-1.364a.636.636 0 1 0 0 1.273h.91a.636.636 0 1 1 0 1.273H11"></path></svg>
+            <span>Bill Pay</span>
+          </a>
+
+          <!-- Accounting -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            <span>Accounting</span>
+            <span class="nav-badge">37</span>
+          </a>
+
+          <!-- People -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>People</span>
+          </a>
+
+          <!-- Vendors -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" d="M1.703 6.433v7.35c0 .706.503 1.217 1.206 1.217h10.182c.703 0 1.206-.511 1.206-1.217v-7.35M15 4.757v-1.84A1.913 1.913 0 0 0 13.09 1H2.91C1.854 1 1 1.858 1 2.917v1.84C1 6.212 2.35 7.39 4.182 7.39c.681 0 1.191-.359 1.718-.639.527.28.827.64 2.1.64 1.273 0 1.573-.36 2.1-.64.527.28 1.037.64 1.718.64C13.65 7.391 15 6.211 15 4.756ZM10.386 15v-4.297c0-.77-.621-1.394-1.388-1.394H7.32c-.767 0-1.388.624-1.388 1.394V15h4.454Z"></path></svg>
+            <span>Vendors</span>
+          </a>
+        </nav>
+
+        <!-- Bottom: Settings -->
+        <div class="sidebar-footer">
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Settings</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="main-area">
+      <!-- Top banner -->
+      <div class="banner">
+        <div class="banner-inner">
+          <div class="banner-text">
+            See how Ramp can save your business time and money.
+            <a href="#" class="banner-link">Learn more<span class="arrow-icon"> &#8599;</span></a>
+          </div>
+          <a href="#" class="btn btn--cta">
+            <span>Get started</span>
+            <span>&#8599;</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Page content -->
+      <div class="page-content">
+        <div class="travel-content">
+          <!-- Map background -->
+          <div class="travel-map-area">
+            <img src="https://try.ramp.com/static/asset.CrysQoSeKo.svg" alt="" class="travel-map-bg">
+
+            <!-- Search card -->
+            <div class="travel-search-card">
+              <!-- Tabs -->
+              <div class="travel-tabs" data-tab-group="travel">
+                <div class="travel-tab travel-tab--active" data-tab="flights">Flights</div>
+                <div class="travel-tab" data-tab="hotels">Hotels</div>
+              </div>
+
+              <!-- Flights form panel -->
+              <div data-form="flights" class="travel-form-panel travel-form-panel--active">
+                <!-- Dropdowns -->
+                <div class="travel-dropdowns">
+                  <div class="travel-dropdown" data-dropdown-trigger>
+                    <span class="dropdown-label">Round-trip</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-item">Round-trip</div>
+                      <div class="dropdown-item">One-way</div>
+                      <div class="dropdown-item">Multi-city</div>
+                    </div>
+                  </div>
+                  <div class="travel-dropdown" data-dropdown-trigger>
+                    <span class="dropdown-label">Economy</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-item">Economy</div>
+                      <div class="dropdown-item">Premium Economy</div>
+                      <div class="dropdown-item">Business</div>
+                      <div class="dropdown-item">First</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Form row -->
+                <div class="travel-form-row">
+                  <!-- Where from -->
+                  <div class="travel-field">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </span>
+                    <input type="text" placeholder="Where from?">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-tertiary); flex-shrink: 0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+
+                  <!-- Swap button -->
+                  <button class="travel-swap-btn" title="Swap origin and destination">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+                  </button>
+
+                  <!-- Where to -->
+                  <div class="travel-field">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </span>
+                    <input type="text" placeholder="Where to?">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-tertiary); flex-shrink: 0;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+
+                  <!-- Separator -->
+                  <div class="travel-field-sep"></div>
+
+                  <!-- Departure -->
+                  <div class="travel-field">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </span>
+                    <input type="text" placeholder="Departure">
+                  </div>
+
+                  <!-- Return -->
+                  <div class="travel-field">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </span>
+                    <input type="text" placeholder="Return">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hotels form panel -->
+              <div data-form="hotels" class="travel-form-panel">
+                <div class="travel-dropdowns">
+                  <div class="travel-dropdown" data-dropdown-trigger>
+                    <span class="dropdown-label">1 guest</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-item">1 guest</div>
+                      <div class="dropdown-item">2 guests</div>
+                      <div class="dropdown-item">3 guests</div>
+                      <div class="dropdown-item">4 guests</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="travel-form-row">
+                  <div class="travel-field" style="flex: 2;">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </span>
+                    <input type="text" placeholder="Where would you like to stay?">
+                  </div>
+                  <div class="travel-field-sep"></div>
+                  <div class="travel-field">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </span>
+                    <input type="text" placeholder="Check in">
+                  </div>
+                  <div class="travel-field-sep"></div>
+                  <div class="travel-field">
+                    <span class="travel-field-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </span>
+                    <input type="text" placeholder="Check out">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Search button -->
+              <button class="travel-search-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                Search flights
+              </button>
+            </div>
+          </div>
+
+          <!-- Action cards -->
+          <div class="travel-action-cards">
+            <!-- Card 1: Travel policy -->
+            <a href="#" class="travel-action-card">
+              <span class="travel-action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 16 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M7.833 14.833s5.334-2.666 5.334-6.666V3.5l-5.334-2-5.333 2v4.667c0 4 5.333 6.666 5.333 6.666Z"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M10.5 6.167 6.833 9.833l-1.497-1.5"></path></svg>
+              </span>
+              <span class="travel-action-text">Review your company's travel policy</span>
+              <span class="travel-action-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </span>
+            </a>
+
+            <!-- Card 2: Traveler profile -->
+            <a href="#" class="travel-action-card">
+              <span class="travel-action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </span>
+              <span class="travel-action-text">Update your traveler profile for faster booking</span>
+              <span class="travel-action-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </span>
+            </a>
+
+            <!-- Card 3: Learn more -->
+            <a href="#" class="travel-action-card">
+              <span class="travel-action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              </span>
+              <span class="travel-action-text">Learn more about booking travel on Ramp</span>
+              <span class="travel-action-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="../../../main.js"></script>
+</body>
+</html>

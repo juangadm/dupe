@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>My Ramp — Overview</title>
+  <link rel="stylesheet" href="../variables.css">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div id="root">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-inner">
+        <!-- Top: Logo + Collapse -->
+        <div class="sidebar-header">
+          <a href="/home/" class="nav-item nav-item--icon-only" title="Home">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 56 56" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M56 47.778v.211L25.5 48v-.222c4.398-2.51 7.434-5.065 10.166-7.735h12.523L56 47.778ZM48.443 7.659 40.713 0h-.226s.13 14.274-12.85 27.255C14.938 39.961 0 39.99 0 39.99v.223l7.876 7.792s14.719.147 27.72-12.734C48.553 22.432 48.444 7.659 48.444 7.659Z"></path></svg>
+          </a>
+          <button class="nav-item nav-item--icon-only" title="Collapse navigation">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+          </button>
+        </div>
+
+        <!-- Nav items -->
+        <nav class="sidebar-nav">
+          <!-- Search -->
+          <button class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span>Search</span>
+            <span class="nav-shortcut"><kbd>⌘</kbd><kbd>K</kbd></span>
+          </button>
+
+          <!-- Inbox -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+            <span>Inbox</span>
+            <span class="nav-badge">7</span>
+          </a>
+
+          <!-- Insights -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            <span>Insights</span>
+          </a>
+
+          <!-- My Ramp (active) -->
+          <a href="/home/" class="nav-item nav-item--active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M13.727 2.5H2.273C1.57 2.5 1 3.116 1 3.875v8.25c0 .76.57 1.375 1.273 1.375h11.454c.703 0 1.273-.616 1.273-1.375v-8.25c0-.76-.57-1.375-1.273-1.375Z"></path><path fill="currentColor" d="M1 5.6h14v1.25H1z"></path></svg>
+            <span>My Ramp</span>
+          </a>
+
+          <!-- Sub-items -->
+          <a href="/home/" class="nav-item nav-item--sub nav-item--sub-active">
+            <span>Overview</span>
+          </a>
+          <a href="/home/personal-expenses/all/" class="nav-item nav-item--sub">
+            <span>Expenses</span>
+          </a>
+          <a href="/home/travel/bookings/" class="nav-item nav-item--sub">
+            <span>Travel</span>
+          </a>
+
+          <!-- Expenses (global) -->
+          <a href="/home/personal-expenses/all/" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M7.999 4.5v7M9.59 5.773H7.203a1.114 1.114 0 0 0 0 2.227h1.591a1.114 1.114 0 0 1 0 2.227H6.09"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M8 14.667A6.667 6.667 0 1 0 8 1.334a6.667 6.667 0 0 0 0 13.333Z"></path></svg>
+            <span>Expenses</span>
+          </a>
+
+          <!-- Spend programs -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M11.613 6.375 7.38 12.032h3.81l-.424 3.343L15 10.146h-3.81l.424-3.771Z"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M5 13.5H2.556C1.696 13.5 1 13.008 1 12.4V3.6c0-.608.696-1.1 1.556-1.1h10.888c.86 0 1.556.492 1.556 1.1V7"></path><path fill="currentColor" d="M1.01 5.6H8.5l-1 1.25H1.01V5.6Z"></path></svg>
+            <span>Spend programs</span>
+          </a>
+
+          <!-- Procurement -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            <span>Procurement</span>
+          </a>
+
+          <!-- Bill Pay -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M9.333 1.333v4h4M7.667 8.667H5.333M6.667 11.333H5.333M6.667 6H5.333"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M7.75 14.667H4a1.334 1.334 0 0 1-1.333-1.334V2.667A1.333 1.333 0 0 1 4 1.333h5.333l4 4V7"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M12 15.333a3.333 3.333 0 1 0 0-6.666 3.333 3.333 0 0 0 0 6.666ZM12.09 10v4"></path><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M13 10.727h-1.364a.636.636 0 1 0 0 1.273h.91a.636.636 0 1 1 0 1.273H11"></path></svg>
+            <span>Bill Pay</span>
+          </a>
+
+          <!-- Accounting -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            <span>Accounting</span>
+            <span class="nav-badge">37</span>
+          </a>
+
+          <!-- People -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>People</span>
+          </a>
+
+          <!-- Vendors -->
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 16 16" aria-hidden="true"><path stroke="currentColor" d="M1.703 6.433v7.35c0 .706.503 1.217 1.206 1.217h10.182c.703 0 1.206-.511 1.206-1.217v-7.35M15 4.757v-1.84A1.913 1.913 0 0 0 13.09 1H2.91C1.854 1 1 1.858 1 2.917v1.84C1 6.212 2.35 7.39 4.182 7.39c.681 0 1.191-.359 1.718-.639.527.28.827.64 2.1.64 1.273 0 1.573-.36 2.1-.64.527.28 1.037.64 1.718.64C13.65 7.391 15 6.211 15 4.756ZM10.386 15v-4.297c0-.77-.621-1.394-1.388-1.394H7.32c-.767 0-1.388.624-1.388 1.394V15h4.454Z"></path></svg>
+            <span>Vendors</span>
+          </a>
+        </nav>
+
+        <!-- Bottom: Settings -->
+        <div class="sidebar-footer">
+          <a href="#" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Settings</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="main-area">
+      <!-- Top banner -->
+      <div class="banner">
+        <div class="banner-inner">
+          <div class="banner-text">
+            See how Ramp can save your business time and money.
+            <a href="#" class="banner-link">Learn more<span class="arrow-icon"> &#8599;</span></a>
+          </div>
+          <a href="#" class="btn btn--cta">
+            <span>Get started</span>
+            <span>&#8599;</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Page content -->
+      <div class="page-content">
+        <div class="content-grid">
+          <!-- Feed -->
+          <div class="feed">
+            <div class="feed-inner">
+              <!-- Greeting -->
+              <div class="greeting">
+                <h2 class="greeting-subtitle">Good afternoon, David</h2>
+                <h1 class="greeting-title">You're all caught up!</h1>
+              </div>
+
+              <!-- Notice card -->
+              <div class="notice-card">
+                <div class="notice-card-inner">
+                  <div class="notice-content">
+                    <h3 class="notice-title">No personal expenses need your attention</h3>
+                    <p class="notice-subtitle">Check back after using your Ramp card or send receipt photos to HIRAMP (447267) to get reimbursed</p>
+                  </div>
+                  <div class="notice-illustration">
+                    <svg width="200" height="109" viewBox="0 0 200 109" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="20" y="5" width="160" height="95" rx="6" fill="var(--color-border)" opacity="0.6"/>
+                      <rect x="35" y="20" width="100" height="65" rx="4" fill="var(--color-bg-white)" stroke="var(--color-border)" stroke-width="1"/>
+                      <circle cx="85" cy="48" r="16" fill="none" stroke="var(--color-text-tertiary)" stroke-width="1.5"/>
+                      <path d="M85 38v10l6 3" stroke="var(--color-text-tertiary)" stroke-width="1.5" stroke-linecap="round"/>
+                      <rect x="120" y="30" width="50" height="8" rx="2" fill="var(--color-border)"/>
+                      <rect x="120" y="44" width="40" height="8" rx="2" fill="var(--color-border)"/>
+                      <rect x="120" y="58" width="45" height="8" rx="2" fill="var(--color-border)"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Spacer -->
+              <div style="height: 24px"></div>
+
+              <!-- Recent expenses header -->
+              <div class="section-header">
+                <h2 class="section-title">Recent expenses</h2>
+              </div>
+
+              <!-- Expense list -->
+              <div class="expense-list">
+                <!-- Row 1: Tacombi -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo">
+                    <img src="https://demo-logos.ramp.com/tacombi.com" alt="" width="32" height="32">
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$135.40 <span class="expense-at">at</span> Tacombi</div>
+                    <div class="expense-meta">
+                      <span>May 29 at 3:25 PM</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Office Supplies</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    Missing items
+                  </div>
+                </a>
+
+                <!-- Row 2: Ramp Restaurant -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo expense-logo--initials">RR</div>
+                  <div class="expense-details">
+                    <div class="expense-title">$1,174.77 USD <span class="expense-at">at</span> Ramp Restaurant</div>
+                    <div class="expense-meta">
+                      <span>May 27</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--success">Paid</div>
+                </a>
+
+                <!-- Row 3: Delta Airlines -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo">
+                    <img src="https://demo-logos.ramp.com/delta.com" alt="" width="32" height="32">
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$3,104.06 USD <span class="expense-at">at</span> Delta Airlines</div>
+                    <div class="expense-meta">
+                      <span>May 27</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--success">Paid</div>
+                </a>
+
+                <!-- Row 4: Ramp Restaurant -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo expense-logo--initials">RR</div>
+                  <div class="expense-details">
+                    <div class="expense-title">$421.55 USD <span class="expense-at">at</span> Ramp Restaurant</div>
+                    <div class="expense-meta">
+                      <span>May 27</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--success">Paid</div>
+                </a>
+
+                <!-- Row 5: Delta Airlines -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo">
+                    <img src="https://demo-logos.ramp.com/delta.com" alt="" width="32" height="32">
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$2,490.50 USD <span class="expense-at">at</span> Delta Airlines</div>
+                    <div class="expense-meta">
+                      <span>May 27</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--success">Paid</div>
+                </a>
+
+                <!-- Row 6: Best Buy -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo">
+                    <img src="https://demo-logos.ramp.com/bestbuy.com" alt="" width="32" height="32">
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$60.61 USD <span class="expense-at">at</span> Best Buy</div>
+                    <div class="expense-meta">
+                      <span>May 24</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status">Awaiting payment</div>
+                </a>
+
+                <!-- Row 7: Uber -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo">
+                    <img src="https://demo-logos.ramp.com/uber.com" alt="" width="32" height="32">
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$339.32 USD <span class="expense-at">at</span> Uber</div>
+                    <div class="expense-meta">
+                      <span>May 23</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--muted">Pending review</div>
+                </a>
+
+                <!-- Row 8: Mileage -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo expense-logo--initials">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$410.15 USD <span class="expense-at">at</span> 612.17 miles</div>
+                    <div class="expense-meta">
+                      <span>May 22</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Reimbursement</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--muted">Pending review</div>
+                </a>
+
+                <!-- Row 9: Grubhub -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo expense-logo--initials">G</div>
+                  <div class="expense-details">
+                    <div class="expense-title">$25.00 <span class="expense-at">at</span> Grubhub</div>
+                    <div class="expense-meta">
+                      <span>Sep 28 at 3:25 PM</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Office Supplies</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Requirements complete
+                  </div>
+                </a>
+
+                <!-- Row 10: NYBG -->
+                <a href="#" class="expense-row">
+                  <div class="expense-logo">
+                    <img src="https://demo-logos.ramp.com/nybg.org" alt="" width="32" height="32">
+                  </div>
+                  <div class="expense-details">
+                    <div class="expense-title">$70.00 <span class="expense-at">at</span> New York Botanical Garden</div>
+                    <div class="expense-meta">
+                      <span>Sep 22 at 1:22 PM</span>
+                      <span class="meta-dot">&middot;</span>
+                      <span>Office Supplies</span>
+                    </div>
+                  </div>
+                  <div class="expense-status expense-status--success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Requirements complete
+                  </div>
+                </a>
+              </div>
+
+              <!-- View all link -->
+              <div class="view-all-row">
+                <a href="/home/personal-expenses/all/" class="view-all-link">View all expenses <span class="arrow-sm">&rarr;</span></a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Separator -->
+          <div class="separator"></div>
+
+          <!-- Right sidebar -->
+          <div class="right-sidebar">
+            <!-- Action buttons -->
+            <div class="action-buttons">
+              <a href="#" class="btn btn--cta btn--full">Request funds</a>
+              <a href="#" class="btn btn--outline btn--full">Create reimbursement</a>
+              <a href="/home/travel/bookings/" class="btn btn--outline btn--full">Book travel</a>
+              <a href="#" class="btn btn--ghost btn--full">Employee handbook</a>
+            </div>
+
+            <!-- Virtual Cards -->
+            <div class="sidebar-card">
+              <h3 class="sidebar-card-title">Virtual Cards</h3>
+              <div class="sidebar-card-row">
+                <span class="sidebar-card-label">Office Supplies</span>
+                <span class="sidebar-card-value">$260 left</span>
+              </div>
+            </div>
+
+            <!-- Purchase Orders -->
+            <div class="sidebar-card">
+              <div class="sidebar-card-header">
+                <h3 class="sidebar-card-title">Purchase orders</h3>
+                <a href="#" class="sidebar-card-link">View all <span class="arrow-sm">&rarr;</span></a>
+              </div>
+              <div class="sidebar-card-row">
+                <span class="sidebar-card-label">PO# 2</span>
+                <span class="sidebar-card-value">$50K left</span>
+              </div>
+            </div>
+
+            <!-- Reimbursements -->
+            <div class="sidebar-card">
+              <h3 class="sidebar-card-title">Reimbursements</h3>
+              <div class="sidebar-card-row">
+                <div>
+                  <span class="sidebar-card-label">7 awaiting approval</span><br>
+                  <span class="sidebar-card-value">$8,000.96</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-secondary);"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="../main.js"></script>
+</body>
+</html>

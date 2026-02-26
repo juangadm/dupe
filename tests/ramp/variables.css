@@ -1,0 +1,49 @@
+/* variables.css — Design tokens for Ramp clone */
+:root {
+  /* Colors */
+  --color-text-primary: rgb(46, 46, 39);
+  --color-text-secondary: rgb(112, 112, 98);
+  --color-text-tertiary: rgb(145, 145, 123);
+  --color-bg-page: rgb(252, 251, 250);
+  --color-bg-sidebar: rgb(244, 243, 239);
+  --color-bg-card: rgb(244, 243, 239);
+  --color-bg-white: rgb(255, 255, 255);
+  --color-border: rgb(235, 232, 229);
+  --color-border-sidebar: rgb(219, 218, 201);
+  --color-border-button: rgb(145, 145, 123);
+  --color-banner: rgb(47, 72, 66);
+  --color-cta: rgb(228, 242, 34);
+  --color-success: rgb(38, 118, 59);
+  --color-warning: rgb(135, 102, 52);
+  --color-sidebar-active: rgb(235, 232, 229);
+  --color-avatar-bg: rgb(252, 251, 250);
+
+  /* Typography */
+  --font-primary: Lausanne, Inter, Roboto, "Helvetica Neue", "Arial Nova", "Nimbus Sans", Arial, sans-serif;
+
+  /* Type scale */
+  --text-2xl: 28px;
+  --text-xl: 20px;
+  --text-base: 16px;
+  --text-sm: 14px;
+  --text-xs: 12px;
+  --text-2xs: 11.2px;
+
+  /* Line heights */
+  --leading-2xl: 32px;
+  --leading-xl: 28px;
+  --leading-base: 24px;
+  --leading-sm: 20px;
+
+  /* Letter spacing */
+  --tracking-2xl: -0.56px;
+  --tracking-xl: -0.4px;
+  --tracking-base: -0.32px;
+
+  /* Sizes */
+  --sidebar-width: 256px;
+  --banner-height: 57px;
+  --nav-item-height: 32px;
+  --feed-max-width: 750px;
+  --right-sidebar-width: 362px;
+}

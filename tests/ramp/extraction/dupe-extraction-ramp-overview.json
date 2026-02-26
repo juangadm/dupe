@@ -1,0 +1,120 @@
+{
+  "page": "try.ramp.com/home",
+  "viewport": "1920x1080",
+  "layout": {
+    "gridTemplateColumns": "1301px 1px 362px",
+    "gridContainerWidth": 1664,
+    "leftNavWidth": 256,
+    "feedMaxWidth": 750,
+    "feedInnerPadding": "16px 0px 0px",
+    "rightSidebarColumnWidth": 362,
+    "rightSidebarContentWidth": 298
+  },
+  "rightSidebar": {
+    "width": 298,
+    "padding": "40px 0px",
+    "paddingTop": "40px",
+    "paddingRight": "0px",
+    "paddingBottom": "40px",
+    "paddingLeft": "0px",
+    "columnWrapperPadding": "16px 0px 0px"
+  },
+  "actionButtons": {
+    "containerWidth": 282,
+    "containerDisplay": "flex",
+    "containerFlexDirection": "column",
+    "buttonWidth": 282,
+    "buttonHeight": 40,
+    "buttonFontSize": "14px",
+    "buttonFontWeight": "400",
+    "buttonGap": "16px (inferred from margins between buttons)",
+    "buttons": [
+      {
+        "text": "Request funds",
+        "type": "cta",
+        "padding": "0px 16px",
+        "backgroundColor": "rgb(228, 242, 34)",
+        "border": "1px solid rgb(228, 242, 34)"
+      },
+      {
+        "text": "Create reimbursement",
+        "type": "outline",
+        "padding": "0px 16px",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "border": "1px solid rgb(145, 145, 123)"
+      },
+      {
+        "text": "Book travel",
+        "type": "outline",
+        "padding": "0px 16px",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "border": "1px solid rgb(145, 145, 123)"
+      },
+      {
+        "text": "Employee handbook",
+        "type": "ghost",
+        "padding": "0px 8px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "border": "1px solid rgba(0, 0, 0, 0)"
+      }
+    ]
+  },
+  "sidebarCards": {
+    "cardTitleStyle": {
+      "fontSize": "20px",
+      "fontWeight": "400",
+      "color": "rgb(112, 112, 98)",
+      "lineHeight": "28px",
+      "letterSpacing": "-0.4px"
+    },
+    "cardLabelStyle": {
+      "fontSize": "14px",
+      "fontWeight": "300",
+      "color": "rgb(46, 46, 39)",
+      "lineHeight": "20px"
+    },
+    "cardValueStyle": {
+      "fontSize": "14px",
+      "fontWeight": "300",
+      "color": "rgb(112, 112, 98)",
+      "lineHeight": "20px"
+    },
+    "titleContainerPadding": "0px 8px",
+    "cards": [
+      {
+        "title": "Virtual Cards",
+        "containerWidth": 298,
+        "texts": ["Office Supplies", "$260 left"]
+      },
+      {
+        "title": "Purchase orders",
+        "containerWidth": 282,
+        "hasViewAll": true,
+        "texts": ["PO# 2", "$50K left"]
+      },
+      {
+        "title": "Reimbursements",
+        "containerWidth": 298,
+        "texts": ["7 awaiting approval", "$8,000.96"]
+      }
+    ]
+  },
+  "expenseRow": {
+    "titleElement": "H2",
+    "titleFontSize": "16px",
+    "titleFontWeight": "400",
+    "titleColor": "rgb(46, 46, 39)",
+    "titleLineHeight": "24px",
+    "atTextWeight": "400 (same as surrounding - NOT separate span)",
+    "atTextNote": "The 'at' text is inline within the H2, not a separate styled element",
+    "metaFontSize": "14px",
+    "metaFontWeight": "300",
+    "metaColor": "rgb(112, 112, 98)"
+  },
+  "greeting": {
+    "subtitleFontSize": "20px",
+    "subtitleFontWeight": "400",
+    "subtitleColor": "rgb(112, 112, 98)",
+    "titleElement": "H1 (inferred)"
+  }
+}
