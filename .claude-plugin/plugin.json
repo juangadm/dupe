@@ -1,0 +1,8 @@
+{
+  "name": "dupe",
+  "version": "0.1.0",
+  "description": "Clone any website pixel-perfectly using DOM extraction. Extracts real markup, styles, dimensions, and interactions — not screenshots. For building prototypes on real products.",
+  "author": "juangadm",
+  "keywords": ["clone", "website", "DOM", "pixel-perfect", "prototype", "playwright"],
+  "license": "MIT"
+}
