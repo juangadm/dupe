@@ -62,6 +62,28 @@ to Phase 4 (Build) until ALL pages show "extracted". This is the single most
 important rule in the entire skill — without it, you will get lost in the
 extraction of page 1 and never reach page 2.
 
+### Interaction Depth Matrix
+
+For each page, define depth BEFORE extraction begins:
+
+| Page | Content Depth | Interaction Depth | Notes |
+|------|--------------|-------------------|-------|
+| Example | Scroll full page | Depth 2 | Each tab shows different content |
+
+**Content Depth:**
+- "visible only" — extract what's on screen at 1920×1080
+- "scroll full page" — scroll to bottom, extract everything
+- "scroll table fully" — scroll horizontally AND vertically to capture all columns/rows
+
+**Interaction Depth:**
+- Depth 0 — static content only (no interactions)
+- Depth 1 — click each interactive element, extract revealed state
+- Depth 2 — click each interactive element, extract ALL variants (each tab, each dropdown option)
+- Depth 3 — multi-step chains (select option A → form changes → fill form → submit feedback)
+
+Fill in this matrix for every page in the checklist. Extraction is NOT complete until
+every page meets its specified depth.
+
 ### Scope → Phase Mapping
 
 | Scope | Phases |
@@ -181,6 +203,9 @@ Get the high-level page structure (3 levels deep):
               w: Math.round(rect.width), h: Math.round(rect.height) },
       display: cs.display,
       position: cs.position,
+      margin: cs.margin, padding: cs.padding,
+      gap: cs.gap, rowGap: cs.rowGap, columnGap: cs.columnGap,
+      transition: cs.transition !== 'all 0s ease 0s' ? cs.transition : undefined,
       childCount: el.children.length,
       children: [...el.children].map(c => extract(c, depth + 1)).filter(Boolean)
     };
@@ -192,10 +217,55 @@ Get the high-level page structure (3 levels deep):
 From this, identify: sidebar, header/banner, main content area, right sidebar,
 footer. Note their CSS selectors and layout properties (flex, grid, dimensions).
 
+**Box model values** (`margin`, `padding`, `gap`) are critical —
+`getBoundingClientRect()` gives size and position but not internal spacing.
+Without these, the build agent will guess padding values and get them wrong.
+
+**Transition values** must be extracted here. If `transition` is non-default
+(anything other than `all 0s ease 0s`), include it. Static replicas without
+transitions feel dead — you can't add what you didn't extract.
+
+### Step 2.1.5: Content Inventory
+
+Before targeted extraction, inventory ALL interactive containers on the page:
+
+```js
+(function() {
+  const inventory = {
+    tabGroups: [...document.querySelectorAll('[role="tablist"], [data-tab-group]')].map(g => ({
+      tabCount: g.querySelectorAll('[role="tab"], [data-tab]').length,
+      labels: [...g.querySelectorAll('[role="tab"], [data-tab]')].map(t => t.textContent.trim())
+    })),
+    hiddenPanels: document.querySelectorAll('[hidden], [aria-hidden="true"], [style*="display: none"]').length,
+    dropdowns: [...document.querySelectorAll('[data-dropdown], [aria-haspopup], select')].map(d => ({
+      text: d.textContent.trim().slice(0, 30),
+      optionCount: d.querySelectorAll('option, [role="option"], li').length
+    })),
+    forms: document.querySelectorAll('form, [role="form"]').length,
+    scrollableRegions: [...document.querySelectorAll('[style*="overflow"], table')].length
+  };
+  return inventory;
+})()
+```
+
+Log these in the extraction JSON under `contentInventory`. Mark each as "extracted"
+or "pending". Phase 2 is NOT done until all items are extracted.
+
+For each tab group: click EVERY tab and extract the revealed panel content.
+For each table: scroll to the rightmost column and extract ALL column headers.
+For each dropdown: open it and extract all options.
+For forms that change per tab: extract form fields for EACH tab state.
+
 ### Step 2.2: Targeted Element Extraction
 
 For each major section, use TARGETED queries — not a deep recursive walk.
-Extract the actual elements you care about:
+Extract the actual elements you care about.
+
+**After extracting visible content, you MUST also:**
+1. Click each tab → extract the revealed panel content
+2. Scroll each table to its rightmost column → extract ALL column headers and widths
+3. Open each dropdown → extract all options
+4. For forms that change per tab: extract form fields for EACH tab state
 
 **Navigation / sidebar items:**
 ```js
@@ -248,6 +318,69 @@ Extract the actual elements you care about:
         padding: cs.padding, href: el.href || undefined
       };
     });
+})()
+```
+
+**Hover states:** For each interactive element (buttons, links, nav items, cards),
+use Playwright to hover and extract the changed computed styles. Hover states are
+pseudo-classes that only activate on mouse interaction — `getComputedStyle()` on a
+static page will NEVER capture them:
+
+```
+// For each interactive selector:
+browser_hover → [selector]
+browser_evaluate →
+(function() {
+  const el = document.querySelector('[selector]');
+  const cs = getComputedStyle(el);
+  return {
+    backgroundColor: cs.backgroundColor, color: cs.color,
+    textDecoration: cs.textDecoration, borderColor: cs.borderColor,
+    boxShadow: cs.boxShadow, opacity: cs.opacity,
+    outline: cs.outline
+  };
+})()
+```
+
+Include hover data in the extraction JSON under a `hoverStates` key, keyed by
+element selector or description.
+
+**Tables:** For every `<table>`, extract: `display`, `tableLayout`, `borderCollapse`.
+For each `<th>` and `<td>`: `backgroundColor`, `padding`, `borderBottom`, `fontSize`,
+`fontWeight`, `position`, `left`, `right`, `zIndex`, `width`. Document which columns
+are sticky and their offset values. Tables are commonly missed because they aren't
+covered by the targeted queries above:
+
+```js
+(function() {
+  return [...document.querySelectorAll('table')].map(table => {
+    const cs = getComputedStyle(table);
+    const headers = [...table.querySelectorAll('th')].map(th => {
+      const thCs = getComputedStyle(th);
+      return {
+        text: th.textContent.trim(),
+        backgroundColor: thCs.backgroundColor, padding: thCs.padding,
+        fontSize: thCs.fontSize, fontWeight: thCs.fontWeight,
+        position: thCs.position, left: thCs.left, right: thCs.right,
+        zIndex: thCs.zIndex, width: thCs.width, borderBottom: thCs.borderBottom
+      };
+    });
+    const firstRow = table.querySelector('tbody tr');
+    const cells = firstRow ? [...firstRow.querySelectorAll('td')].map(td => {
+      const tdCs = getComputedStyle(td);
+      return {
+        backgroundColor: tdCs.backgroundColor, padding: tdCs.padding,
+        fontSize: tdCs.fontSize, fontWeight: tdCs.fontWeight,
+        position: tdCs.position, left: tdCs.left, right: tdCs.right,
+        zIndex: tdCs.zIndex, width: tdCs.width, borderBottom: tdCs.borderBottom
+      };
+    }) : [];
+    return {
+      display: cs.display, tableLayout: cs.tableLayout,
+      borderCollapse: cs.borderCollapse,
+      headers, sampleCells: cells
+    };
+  });
 })()
 ```
 
@@ -325,6 +458,33 @@ TreeWalker goes directly to the text nodes — no wrapper noise.
 })()
 ```
 
+### Step 2.4.5: SVG Icon Extraction
+
+For every `<svg>` element on the page, extract the full markup:
+
+```js
+(function() {
+  return [...document.querySelectorAll('svg')].filter(el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }).map(el => {
+    const r = el.getBoundingClientRect();
+    const parent = el.closest('a, button, [role="button"], li, div');
+    return {
+      outerHTML: el.outerHTML.slice(0, 2000),
+      rect: { x: Math.round(r.x), y: Math.round(r.y),
+              w: Math.round(r.width), h: Math.round(r.height) },
+      parentSelector: parent ? (parent.className || parent.tagName) : 'unknown',
+      parentText: parent ? parent.textContent.trim().slice(0, 50) : ''
+    };
+  });
+})()
+```
+
+Store in extraction JSON under `svgIcons` keyed by parent selector or description.
+NEVER substitute feather/lucide/heroicons for extracted SVGs. The actual SVG markup
+IS the icon — there is no approximation.
+
 ### Step 2.5: Typography + Color Palette
 
 Run these once per site (not per page):
@@ -381,7 +541,35 @@ If the build fails later, you can re-run Phase 4 from cache without re-extractin
 open by reading this file — never build from memory or prompt text alone. Every CSS
 pixel value in the build must trace back to a number in this JSON file.
 
-### Step 2.7: CHECKPOINT — Review the Page Checklist
+**Extraction Validation Checklist (MUST pass before proceeding):**
+- [ ] Every page in the checklist has extraction data
+- [ ] Every tab in contentInventory has panel content extracted
+- [ ] Every table has ALL columns extracted (scroll right to verify)
+- [ ] Every form section has field data for each variant
+- [ ] interactionDepth requirements are met for each page
+- [ ] SVG icons are captured (not approximated)
+
+If ANY check fails: go back and extract the missing data. Do NOT proceed to Phase 4.
+
+### Step 2.7: Extract URL Sitemap
+
+Document every page URL and how the navigation maps to it. For each nav link,
+record the `href` attribute AND the resolved URL. Write the sitemap to the
+extraction JSON under a `sitemap` key:
+
+```json
+"sitemap": {
+  "/home": "overview",
+  "/home/personal-expenses/all": "expenses",
+  "/home/travel/bookings": "travel"
+}
+```
+
+In Phase 4, file/folder structure MUST mirror these paths. Use `index.html` inside
+directories to produce clean URLs. All nav `href` values must match the real URL
+paths — not simplified file names like `expenses.html`.
+
+### Step 2.8: CHECKPOINT — Review the Page Checklist
 
 Print the page checklist. Mark the current page as "extracted". If there are
 unextracted pages remaining:
@@ -453,7 +641,21 @@ Before writing a single line of code, verify:
 
 If any page is missing, go back to Phase 2. Do NOT build partial clones.
 
-### Step 4.1: Detect Target Framework
+### Step 4.1: Extraction-Build Reconciliation
+
+Before writing ANY code, reconcile extraction data against the build plan:
+
+For EACH page to build:
+1. Read the extraction JSON file
+2. For each interactive element in `contentInventory`:
+   - Is there extraction data for it? (If no → go back to Phase 2)
+   - Does the build plan include it? (If no → add it)
+3. For each CSS value you plan to use:
+   - Can you trace it back to the extraction JSON? (If no → extract it first)
+4. NEVER build a value from memory or approximation.
+   If you don't have the number, you don't write the CSS.
+
+### Step 4.1.5: Detect Target Framework
 
 Check the current working directory:
 
@@ -491,6 +693,17 @@ Create `variables.css` from extracted colors, typography, and spacing:
 For multi-page apps: use a simple client-side router or separate HTML files
 linked via the sidebar navigation. Each nav item loads the corresponding page.
 
+**Mirror the URL sitemap.** Create directories matching the real site's URL paths.
+Each page becomes `index.html` inside its directory (e.g., `/home/travel/bookings/index.html`
+for the `/home/travel/bookings` URL). All nav `href` values must match the real URL
+paths. Update `<link>` and `<script>` tags to use correct relative paths to shared
+assets at the project root.
+
+**Root entry point rule:** When pages move to subdirectories, the root `index.html`
+MUST either: (a) redirect to the primary page (e.g., `<meta http-equiv="refresh"
+content="0;url=/home/">`) or (b) be the primary page itself. NEVER leave a stale
+root file. Test by visiting `/` in the browser.
+
 ### Step 4.3.1: Inline Build Checkpoints
 
 After each build step, run a quick sanity check. These are NOT full verification
@@ -524,11 +737,19 @@ Non-negotiable:
 - **ALWAYS make sticky elements opaque.** Add explicit `background-color`.
 - **ALWAYS extract transitions.** Static replicas feel dead.
 - **ALWAYS include hover states.** No hover = looks broken.
+- **Hover states must match extraction.** For every button, link, nav item, and
+  card, add a `:hover` rule with the exact values from the hover extraction.
+  NEVER use `opacity: 0.85` as a generic hover — extract and replicate the real
+  hover effect (background-color change, text-decoration, border-color, etc.).
 - **Build components first, then compose.** Identify repeated patterns.
 - **The shared layout (sidebar, header) must be identical across all pages.**
   Build it once, include it in every page file.
 - **CSS values must be verbatim from extraction.** Open `/tmp/dupe-extraction-{domain}.json`. For every width, height, margin, padding, gap, font-size, and position value, copy the exact number. Do NOT round. Do NOT "eyeball" from screenshots. If a value isn't in the extraction data, go back and extract it.
 - **Delegating to subagents:** When using the Task tool for the build, pass the extraction JSON file path — NOT the data as text. The subagent must READ the JSON file and use exact values.
+- **NEVER apply styles to the wrong element scope.** Table cell backgrounds go on `.data-table td`, NOT on overview page `.expense-row`. The same visual pattern (rows) may have different backgrounds in different contexts.
+- **VERIFY plan assumptions with math before implementing.** If the plan says "remove padding," calculate: does removing it produce the correct element width? If 298px sidebar − 282px buttons = 16px, the 8px/side padding is correct.
+- **EVERY interactive tab must have content.** A tab with no panel content is worse than no tab at all. If a Reimbursements tab exists, it MUST show filtered data when clicked.
+- **SVG icons must be extracted verbatim.** NEVER substitute feather/lucide/heroicons for real SVGs. The extracted `outerHTML` IS the icon.
 
 ### Step 4.5: Handle Images
 
@@ -611,15 +832,20 @@ For EACH page in the checklist:
 4. Take a screenshot at 1920×1080
 5. Compare visually
 
-### Step 5.3: Fix Top 3 Discrepancies
+### Step 5.3: Systematic Verification (not spot-checking)
 
-For each page, identify and fix the 3 most visible discrepancies:
-- Layout misalignment
-- Missing or mispositioned elements
-- Color / typography mismatches
-- Spacing issues
+Priority order:
 
-Fix, re-screenshot, compare. 2 rounds max (6 fixes total per page).
+1. **FUNCTIONAL:** Every interactive element works (tabs switch, dropdowns open,
+   nav navigates, forms accept input). Test ALL of them, not just 2-3.
+2. **COMPLETENESS:** Every tab has content. Every table has all columns. Every
+   form variant is built. Click through everything.
+3. **VISUAL:** Font sizes, weights, colors, spacing match extraction data.
+   Check at least 10 values per page against the extraction JSON.
+
+For each page, identify and fix discrepancies in priority order. Fix functional
+issues first (broken interactions are worse than wrong spacing). Then completeness.
+Then visual fidelity. Fix, re-screenshot, compare. 2 rounds max per page.
 
 ### Step 5.3.5: Test Interactions via Playwright
 

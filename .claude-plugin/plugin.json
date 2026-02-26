@@ -1,8 +1,11 @@
 {
   "name": "dupe",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Clone any website pixel-perfectly using DOM extraction. Extracts real markup, styles, dimensions, and interactions — not screenshots. For building prototypes on real products.",
   "author": "juangadm",
+  "repository": "https://github.com/juangadm/dupe",
   "keywords": ["clone", "website", "DOM", "pixel-perfect", "prototype", "playwright"],
-  "license": "MIT"
+  "license": "MIT",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
 }
