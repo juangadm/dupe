@@ -51,10 +51,10 @@ static replicas feel dead. The only question is how many pages.
 ```
 ## Dupe Page Checklist
 - Scope: [Full page / Multi-page app]
-- Shared layout: [ ] extracted
-- Page 1 [name/URL]: [ ] extracted  [ ] built  [ ] verified
-- Page 2 [name/URL]: [ ] extracted  [ ] built  [ ] verified
-- Page 3 [name/URL]: [ ] extracted  [ ] built  [ ] verified
+- Shared layout: [ ] extracted  [ ] interactions
+- Page 1 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
+- Page 2 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
+- Page 3 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
 ```
 
 Print this checklist to the user. Reference it after EVERY phase. Do NOT move
@@ -377,6 +377,10 @@ extractions, all TreeWalker scans, typography, colors, images.
 
 If the build fails later, you can re-run Phase 4 from cache without re-extracting.
 
+**This step is NOT optional.** Verify the file exists after writing. Phase 4 MUST
+open by reading this file — never build from memory or prompt text alone. Every CSS
+pixel value in the build must trace back to a number in this JSON file.
+
 ### Step 2.7: CHECKPOINT — Review the Page Checklist
 
 Print the page checklist. Mark the current page as "extracted". If there are
@@ -439,11 +443,11 @@ For accordions: open each section, extract content. Note default open/closed.
 
 Before writing a single line of code, verify:
 
-> "I have extraction data for ALL pages in my checklist:
-> - Shared layout: ✓
-> - Page 1: ✓
-> - Page 2: ✓
-> - Page 3: ✓
+> "I have extraction data AND interaction data for ALL pages in my checklist:
+> - Shared layout: ✓ structure ✓ interactions
+> - Page 1: ✓ structure ✓ interactions
+> - Page 2: ✓ structure ✓ interactions
+> - Page 3: ✓ structure ✓ interactions
 >
 > Proceeding to build."
 
@@ -456,7 +460,7 @@ Check the current working directory:
 1. `package.json` → react/vue/svelte/next/astro
 2. `tailwind.config.*` → use Tailwind classes
 3. `src/components/` → follow naming conventions
-4. No project → ask user or default to standalone HTML + CSS
+4. No project → default to standalone HTML + CSS + vanilla JavaScript. Every clone MUST include a `main.js` file. Static HTML without JavaScript is NEVER acceptable — interactions are what make a clone feel real.
 
 ### Step 4.2: Design Tokens
 
@@ -487,6 +491,29 @@ Create `variables.css` from extracted colors, typography, and spacing:
 For multi-page apps: use a simple client-side router or separate HTML files
 linked via the sidebar navigation. Each nav item loads the corresponding page.
 
+### Step 4.3.1: Inline Build Checkpoints
+
+After each build step, run a quick sanity check. These are NOT full verification
+(that's Phase 5) — they're 30-second smoke tests to catch drift immediately.
+
+**After layout shell (step 3):** Serve and screenshot. Does the sidebar render
+at the correct width? Is the main content area positioned correctly? Fix before
+building page content.
+
+**After each page's content:** Serve that page, screenshot at 1920×1080.
+Spot-check 3 values against the extraction JSON:
+- Does the main heading match the extracted font-size exactly?
+- Is the first section's top offset within 2px of extracted value?
+- Do colors match the extraction palette?
+If any value is off by >3px, stop and fix. Don't build the next page on a bad foundation.
+
+**After interactions (step 8):** For each page, use `browser_click` via Playwright
+on 2-3 key interactive elements:
+- Click a tab → does the active class switch?
+- Click a nav link → does the page navigate?
+- Click a dropdown → does it open?
+If any click produces no change, the interaction is dead. Fix before declaring built.
+
 ### Step 4.4: Build Rules
 
 Non-negotiable:
@@ -500,6 +527,8 @@ Non-negotiable:
 - **Build components first, then compose.** Identify repeated patterns.
 - **The shared layout (sidebar, header) must be identical across all pages.**
   Build it once, include it in every page file.
+- **CSS values must be verbatim from extraction.** Open `/tmp/dupe-extraction-{domain}.json`. For every width, height, margin, padding, gap, font-size, and position value, copy the exact number. Do NOT round. Do NOT "eyeball" from screenshots. If a value isn't in the extraction data, go back and extract it.
+- **Delegating to subagents:** When using the Task tool for the build, pass the extraction JSON file path — NOT the data as text. The subagent must READ the JSON file and use exact values.
 
 ### Step 4.5: Handle Images
 
@@ -512,6 +541,51 @@ Non-negotiable:
 1. **Google Fonts** → `<link>` tag
 2. **System fonts** → no action
 3. **Custom/proprietary** → closest Google Font + comment noting the substitution
+
+### Step 4.7: Build Interactions
+
+For every interaction extracted in Phase 3, write a JavaScript handler in `main.js`.
+Add `<script src="main.js"></script>` before `</body>` in every HTML file.
+
+**Tab switching pattern:**
+```js
+document.querySelectorAll('[data-tab-group]').forEach(group => {
+  const tabs = group.querySelectorAll('[data-tab]');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('tab--active', 'travel-tab--active'));
+      tab.classList.add(tab.classList.contains('travel-tab') ? 'travel-tab--active' : 'tab--active');
+      const panels = group.querySelectorAll('[data-panel]');
+      panels.forEach(p => p.hidden = p.dataset.panel !== tab.dataset.tab);
+    });
+  });
+});
+```
+
+**Dropdown toggle pattern:**
+```js
+document.querySelectorAll('[data-dropdown-trigger]').forEach(trigger => {
+  const dropdown = trigger.querySelector('.dropdown-menu');
+  if (!dropdown) return;
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle('dropdown--open');
+  });
+  document.addEventListener('click', () => dropdown.classList.remove('dropdown--open'));
+});
+```
+
+**Navigation active state:**
+```js
+const currentPage = window.location.pathname.split('/').pop() || 'overview.html';
+document.querySelectorAll('.sidebar-nav a').forEach(link => {
+  const href = link.getAttribute('href');
+  link.classList.toggle('nav-item--sub-active', href === currentPage);
+});
+```
+
+NEVER build an interactive element as a dead `<div>` or `<button>` without a handler.
+If a tab exists, it MUST switch. If a dropdown exists, it MUST open/close.
 
 ---
 
@@ -547,16 +621,26 @@ For each page, identify and fix the 3 most visible discrepancies:
 
 Fix, re-screenshot, compare. 2 rounds max (6 fixes total per page).
 
+### Step 5.3.5: Test Interactions via Playwright
+
+For each page, use `browser_click` to test every interactive element:
+- Tabs must switch (active class changes on click)
+- Dropdowns must open/close
+- Navigation links must navigate to the correct page
+- Form elements must be interactive
+
+If any interaction is dead, fix it before marking the page as verified.
+
 ### Step 5.4: Final Checklist
 
 Print the completed checklist:
 
 ```
 ## Dupe Page Checklist — COMPLETE
-- Shared layout: ✓ extracted  ✓ built
-- Page 1 [name]: ✓ extracted  ✓ built  ✓ verified
-- Page 2 [name]: ✓ extracted  ✓ built  ✓ verified
-- Page 3 [name]: ✓ extracted  ✓ built  ✓ verified
+- Shared layout: ✓ extracted  ✓ interactions  ✓ built
+- Page 1 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified
+- Page 2 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified
+- Page 3 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified
 ```
 
 ---
