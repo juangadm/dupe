@@ -46,14 +46,32 @@ Before navigating to any URL, ask the user:
 Dupe doesn't do half-measures. Every clone includes interactions by default —
 static replicas feel dead. The only question is how many pages.
 
+### After the user answers, write the PAGE CHECKLIST:
+
+```
+## Dupe Page Checklist
+- Scope: [Full page / Multi-page app]
+- Shared layout: [ ] extracted
+- Page 1 [name/URL]: [ ] extracted  [ ] built  [ ] verified
+- Page 2 [name/URL]: [ ] extracted  [ ] built  [ ] verified
+- Page 3 [name/URL]: [ ] extracted  [ ] built  [ ] verified
+```
+
+Print this checklist to the user. Reference it after EVERY phase. Do NOT move
+to Phase 4 (Build) until ALL pages show "extracted". This is the single most
+important rule in the entire skill — without it, you will get lost in the
+extraction of page 1 and never reach page 2.
+
 ### Scope → Phase Mapping
 
 | Scope | Phases |
 |-------|--------|
-| Full page | 1 → 2 → 3 → 4 |
-| Multi-page app | 1 → 2 → 3 → 4, repeated per page (shared layout extracted once) |
+| Full page | 1 → 2 → 3 → 4 → 5 |
+| Multi-page app | 1 → (2 → 3 per page) → 4 → 5 |
 
-Store the user's scope choice and page list — reference it throughout.
+The key insight: **extract ALL pages first, then build ALL pages.** Do not
+extract-and-build page by page. Extraction informs component reuse — you need
+to see all pages before you know what's shared.
 
 ---
 
@@ -65,10 +83,10 @@ Navigate Playwright to `$ARGUMENTS` (the URL the user provided) at **1920×1080*
 
 ```
 browser_navigate → $ARGUMENTS
+browser_resize → 1920×1080
 ```
 
-Take a snapshot for reference. This snapshot is for YOUR context only — do NOT
-build from it. You build from extracted DOM data.
+Take a screenshot for reference. This screenshot orients YOU — do NOT build from it.
 
 ### Step 1.2: Handle Authentication
 
@@ -77,28 +95,25 @@ Pause and ask:
 > "The browser is open at [URL]. If this page requires authentication, sign in
 > now in the browser window. Tell me when you're ready to proceed."
 
-Wait for user confirmation before continuing. Do NOT skip this step even if the
-page appears public — some content loads differently when authenticated.
+Wait for user confirmation. Do NOT skip this even if the page appears public.
 
 ### Step 1.3: Trigger Lazy Loading
 
 After user confirms, scroll the full page to trigger lazy-loaded content:
 
 ```js
-// Scroll to bottom
 window.scrollTo(0, document.body.scrollHeight);
 ```
 
-Wait 2 seconds, then:
+Wait 2 seconds, then scroll back to top:
 
 ```js
-// Scroll back to top
 window.scrollTo(0, 0);
 ```
 
 ### Step 1.4: Wait for Network Idle
 
-Check for loading indicators before proceeding:
+Check for loading indicators:
 
 ```js
 (function() {
@@ -106,32 +121,48 @@ Check for loading indicators before proceeding:
     '[class*="skeleton"], [class*="spinner"], [class*="loading"], ' +
     '[class*="placeholder"], [aria-busy="true"]'
   );
-  const hidden = [...document.querySelectorAll('*')].filter(el => {
-    const s = getComputedStyle(el);
-    return s.opacity === '0' || s.visibility === 'hidden';
-  });
   return {
     skeletons: indicators.length,
-    hiddenElements: hidden.length,
     readyState: document.readyState
   };
 })()
 ```
 
-If skeletons or spinners exist, wait 3 seconds and re-check. After 2 retries,
-proceed anyway and note which elements may be incomplete.
+If skeletons exist, wait 3 seconds and re-check. After 2 retries, proceed.
 
 ---
 
-## Phase 2 — Unified Extraction
+## Phase 2 — Extraction
 
-This is the core of Dupe. You extract structure, dimensions, and styles in a
-SINGLE pass per page section. This is faster than separate passes and keeps
-data co-located.
+This is the core of Dupe. The extraction strategy uses **three complementary
+methods**, not one recursive DOM walker:
 
-### Step 2.1: Map Page Structure (Top-Level)
+1. **Shallow structure map** — 3 levels deep, identifies major sections
+2. **Targeted element queries** — nav items, buttons, cards, table rows
+3. **TreeWalker text scan** — extracts ALL visible text with position + styles
 
-First, get the high-level page structure (3 levels deep):
+Why three methods? Modern React/styled-components apps wrap every piece of text
+in 5-10 layers of `<div>` with generated class names. A deep recursive
+`extractElement()` produces 300K+ characters of wrapper noise and often returns
+empty `textContent` on the actual content elements. The TreeWalker approach
+bypasses this entirely by finding text nodes directly.
+
+### CRITICAL: Multi-page extraction order
+
+For multi-page scope:
+
+1. Extract shared layout FIRST (sidebar, header, banner) — only once
+2. Extract page-specific content for the CURRENT page
+3. Navigate to the NEXT page in the checklist
+4. Repeat step 2 for each page
+5. Only after ALL pages are extracted → move to Phase 4
+
+**Check the page checklist after each page extraction.** If any page shows
+"not extracted", you are NOT done with Phase 2.
+
+### Step 2.1: Shallow Structure Map
+
+Get the high-level page structure (3 levels deep):
 
 ```js
 (function() {
@@ -146,14 +177,11 @@ First, get the high-level page structure (3 levels deep):
       classes: el.className && typeof el.className === 'string'
         ? el.className.split(/\s+/).filter(Boolean).slice(0, 5)
         : [],
-      rect: {
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
-        w: Math.round(rect.width),
-        h: Math.round(rect.height)
-      },
+      rect: { x: Math.round(rect.x), y: Math.round(rect.y),
+              w: Math.round(rect.width), h: Math.round(rect.height) },
       display: cs.display,
       position: cs.position,
+      childCount: el.children.length,
       children: [...el.children].map(c => extract(c, depth + 1)).filter(Boolean)
     };
   }
@@ -161,483 +189,405 @@ First, get the high-level page structure (3 levels deep):
 })()
 ```
 
-From this, identify major sections: header, hero, content areas, sidebar, footer,
-navigation. Name them for reference in subsequent extractions.
+From this, identify: sidebar, header/banner, main content area, right sidebar,
+footer. Note their CSS selectors and layout properties (flex, grid, dimensions).
 
-### Step 2.2: Extract Each Section
+### Step 2.2: Targeted Element Extraction
 
-For EACH major section identified above, run a detailed extraction. This is the
-workhorse function — it captures everything needed to rebuild.
+For each major section, use TARGETED queries — not a deep recursive walk.
+Extract the actual elements you care about:
 
+**Navigation / sidebar items:**
 ```js
 (function() {
-  const STYLE_WHITELIST = [
-    'display', 'position', 'width', 'height', 'maxWidth', 'minHeight',
-    'margin', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
-    'padding', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-    'background', 'backgroundColor', 'backgroundImage', 'backgroundSize',
-    'color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight',
-    'letterSpacing', 'textAlign', 'textDecoration', 'textTransform',
-    'border', 'borderRadius', 'borderColor', 'borderWidth',
-    'boxShadow', 'gap', 'rowGap', 'columnGap',
-    'flexDirection', 'flexWrap', 'alignItems', 'justifyContent', 'flex',
-    'gridTemplateColumns', 'gridTemplateRows', 'gridColumn', 'gridRow',
-    'opacity', 'transform', 'transition',
-    'overflowX', 'overflowY', 'zIndex',
-    'top', 'left', 'right', 'bottom',
-    'listStyleType', 'cursor', 'whiteSpace',
-    'aspectRatio', 'objectFit'
-  ];
-
-  function extractElement(el, depth, maxDepth) {
-    if (depth > maxDepth) return null;
+  const sidebar = document.querySelector('aside, nav, [class*="sidebar"], [class*="Sidebar"]');
+  if (!sidebar) return { error: 'No sidebar found' };
+  const items = [];
+  sidebar.querySelectorAll('a, button, [role="button"]').forEach(el => {
     const rect = el.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return null;
-
+    if (rect.width === 0 || rect.height === 0) return;
     const cs = getComputedStyle(el);
-    const styles = {};
-    for (const prop of STYLE_WHITELIST) {
-      const val = cs[prop];
-      if (val && val !== 'none' && val !== 'normal' && val !== 'auto'
-          && val !== '0px' && val !== 'rgba(0, 0, 0, 0)' && val !== 'start') {
-        styles[prop] = val;
-      }
-    }
-
-    // Get direct text content (not from children)
-    let text = '';
-    for (const node of el.childNodes) {
-      if (node.nodeType === 3) { // TEXT_NODE
-        const t = node.textContent.trim();
-        if (t) text += (text ? ' ' : '') + t;
-      }
-    }
-
-    const result = {
+    const svg = el.querySelector('svg');
+    items.push({
       tag: el.tagName.toLowerCase(),
-      id: el.id || undefined,
-      classes: el.className && typeof el.className === 'string'
-        ? el.className.split(/\s+/).filter(Boolean)
-        : [],
-      rect: {
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
-        w: Math.round(rect.width),
-        h: Math.round(rect.height)
+      href: el.href || undefined,
+      innerText: el.innerText.trim().split('\n')[0],
+      rect: { x: Math.round(rect.x), y: Math.round(rect.y),
+              w: Math.round(rect.width), h: Math.round(rect.height) },
+      styles: {
+        color: cs.color, backgroundColor: cs.backgroundColor,
+        fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+        fontFamily: cs.fontFamily, padding: cs.padding,
+        borderRadius: cs.borderRadius, gap: cs.gap,
+        display: cs.display, alignItems: cs.alignItems
       },
-      styles: styles,
-      text: text || undefined,
-      children: []
-    };
-
-    // Handle specific element types
-    if (el.tagName === 'IMG') {
-      result.src = el.src;
-      result.alt = el.alt;
-    }
-    if (el.tagName === 'A') {
-      result.href = el.href;
-    }
-    if (el.tagName === 'SVG') {
-      result.svg = el.outerHTML;
-    }
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-      result.placeholder = el.placeholder;
-      result.type = el.type;
-    }
-
-    // Recurse into children
-    for (const child of el.children) {
-      const extracted = extractElement(child, depth + 1, maxDepth);
-      if (extracted) result.children.push(extracted);
-    }
-
-    return result;
-  }
-
-  // TARGET: Replace this selector with the section's actual selector
-  const section = document.querySelector('SECTION_SELECTOR_HERE');
-  if (!section) return { error: 'Section not found' };
-  return extractElement(section, 0, 8);
+      svg: svg ? svg.outerHTML.slice(0, 1500) : undefined,
+      isActive: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+                cs.fontWeight === '600' || cs.fontWeight === '700'
+    });
+  });
+  return { containerRect: sidebar.getBoundingClientRect(), items };
 })()
 ```
 
-**Replace `SECTION_SELECTOR_HERE`** with the actual CSS selector for each section.
-Use the structure map from Step 2.1 to determine selectors.
+**Buttons and CTAs** (filter by position/region):
+```js
+(function() {
+  return [...document.querySelectorAll('a[role="button"], button')]
+    .filter(el => el.getBoundingClientRect().width > 80)
+    .map(el => {
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return {
+        text: el.innerText.trim(),
+        rect: { x: Math.round(r.x), y: Math.round(r.y),
+                w: Math.round(r.width), h: Math.round(r.height) },
+        backgroundColor: cs.backgroundColor, color: cs.color,
+        border: cs.border, borderRadius: cs.borderRadius,
+        fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+        padding: cs.padding, href: el.href || undefined
+      };
+    });
+})()
+```
 
-Depth limit: 8 levels. If a section is extremely deep (data tables, nested lists),
-increase to 12 for that section only.
+### Step 2.3: TreeWalker Text Extraction (THE PRIMARY METHOD)
 
-### Step 2.3: Extract Images & Assets
+This is the most important extraction step. It finds ALL visible text nodes
+with their exact position, parent tag, and computed styles. It works on ANY
+framework — React, Vue, Svelte, vanilla — because it reads the rendered DOM,
+not the component tree.
 
-For each `<img>` found during extraction:
-- Record the `src` URL (keep original CDN URLs for now)
-- Record `width`, `height`, `objectFit`, `aspectRatio`
-- For background images: record the `backgroundImage` URL and `backgroundSize`
+Run this per page region. Replace the coordinate bounds for each section:
 
-For SVGs:
-- If inline: captured via `outerHTML` in extraction
-- If external (`<img src="*.svg">`): note the URL
+```js
+(function() {
+  // ADJUST THESE BOUNDS for each page region
+  const BOUNDS = { xMin: 0, xMax: 1920, yMin: 0, yMax: 5000 };
+  const items = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      if (!node.textContent.trim()) return NodeFilter.FILTER_REJECT;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const r = range.getBoundingClientRect();
+      if (r.x >= BOUNDS.xMin && r.x <= BOUNDS.xMax &&
+          r.y >= BOUNDS.yMin && r.y <= BOUNDS.yMax && r.width > 0) {
+        return NodeFilter.FILTER_ACCEPT;
+      }
+      return NodeFilter.FILTER_REJECT;
+    }
+  });
 
-Do NOT download assets at this stage. Use original URLs in the build. The user
-can replace them later.
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const r = range.getBoundingClientRect();
+    const parent = node.parentElement;
+    const cs = parent ? getComputedStyle(parent) : null;
+    items.push({
+      text: node.textContent.trim(),
+      rect: { x: Math.round(r.x), y: Math.round(r.y),
+              w: Math.round(r.width), h: Math.round(r.height) },
+      parentTag: parent?.tagName?.toLowerCase(),
+      fontSize: cs?.fontSize, fontWeight: cs?.fontWeight,
+      color: cs?.color, lineHeight: cs?.lineHeight,
+      letterSpacing: cs?.letterSpacing
+    });
+  }
+  return items;
+})()
+```
 
-### Step 2.4: Extract Typography
+**Why this works where `textContent`/`innerText` fail:** Styled-components,
+CSS-in-JS, and similar frameworks generate deeply nested wrapper `<div>` elements.
+A React `<a>` tag might contain 8 nested divs before reaching the actual text node.
+`element.textContent` traverses down but often returns empty on the `<a>` itself
+because the content is in child elements the browser treats differently.
+TreeWalker goes directly to the text nodes — no wrapper noise.
 
-Run a dedicated typography extraction to capture the font stack:
+### Step 2.4: Images and Assets
+
+```js
+(function() {
+  return [...document.querySelectorAll('img')].filter(el => {
+    const r = el.getBoundingClientRect();
+    return r.width > 5 && r.height > 5;
+  }).map(el => ({
+    src: el.src, alt: el.alt,
+    rect: { x: Math.round(el.getBoundingClientRect().x),
+            y: Math.round(el.getBoundingClientRect().y),
+            w: Math.round(el.getBoundingClientRect().width),
+            h: Math.round(el.getBoundingClientRect().height) },
+    borderRadius: getComputedStyle(el).borderRadius
+  }));
+})()
+```
+
+### Step 2.5: Typography + Color Palette
+
+Run these once per site (not per page):
 
 ```js
 (function() {
   const fonts = new Set();
   const typeScale = [];
   const seen = new Set();
-
   document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a,span,li,td,th,label,button,input').forEach(el => {
     const cs = getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     fonts.add(cs.fontFamily);
-    const key = `${cs.fontSize}|${cs.fontWeight}|${cs.lineHeight}|${cs.letterSpacing}`;
+    const key = cs.fontSize + '|' + cs.fontWeight + '|' + cs.lineHeight;
     if (!seen.has(key)) {
       seen.add(key);
       typeScale.push({
         tag: el.tagName.toLowerCase(),
         sample: el.textContent.trim().slice(0, 40),
-        fontSize: cs.fontSize,
-        fontWeight: cs.fontWeight,
-        lineHeight: cs.lineHeight,
-        letterSpacing: cs.letterSpacing,
-        fontFamily: cs.fontFamily,
-        color: cs.color
+        fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+        lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing,
+        fontFamily: cs.fontFamily, color: cs.color
       });
     }
   });
 
-  return {
-    fontFamilies: [...fonts],
-    typeScale: typeScale.sort((a, b) =>
-      parseFloat(b.fontSize) - parseFloat(a.fontSize)
-    )
-  };
-})()
-```
-
-### Step 2.5: Extract Color Palette
-
-```js
-(function() {
   const colors = new Map();
-
   document.querySelectorAll('*').forEach(el => {
     const cs = getComputedStyle(el);
     [cs.color, cs.backgroundColor, cs.borderColor].forEach(c => {
-      if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') {
+      if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent')
         colors.set(c, (colors.get(c) || 0) + 1);
-      }
     });
   });
 
-  return [...colors.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 20)
-    .map(([color, count]) => ({ color, count }));
+  return {
+    fontFamilies: [...fonts],
+    typeScale: typeScale.sort((a, b) => parseFloat(b.fontSize) - parseFloat(a.fontSize)).slice(0, 15),
+    colorPalette: [...colors.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([color, count]) => ({ color, count }))
+  };
 })()
 ```
 
 ### Step 2.6: Cache Extraction Results
 
-Write ALL extraction data to a cache file so the build phase can be re-run
-without re-extracting:
+Write ALL extraction data to `/tmp/dupe-extraction-{domain}.json` using the
+Bash tool. Include: URL, viewport, timestamp, structure map, all targeted
+extractions, all TreeWalker scans, typography, colors, images.
 
-```bash
-# Write to /tmp/dupe-extraction-{timestamp}.json
-```
+If the build fails later, you can re-run Phase 4 from cache without re-extracting.
 
-Use the Bash tool to write the JSON. Include:
-- Page URL
-- Viewport size
-- Timestamp
-- Structure map
-- All section extractions
-- Typography data
-- Color palette
-- Image/asset list
+### Step 2.7: CHECKPOINT — Review the Page Checklist
 
-### Shadow DOM Handling
+Print the page checklist. Mark the current page as "extracted". If there are
+unextracted pages remaining:
 
-If extraction returns fewer elements than expected, try shadow DOM traversal:
+1. Navigate Playwright to the next page URL
+2. Wait for load + lazy content
+3. Re-run Steps 2.2–2.4 for the NEW page's content (skip shared layout)
+4. Cache the new extraction data
+5. Return to this checkpoint
 
-```js
-(function() {
-  function extractAll(root) {
-    const elements = [...root.querySelectorAll('*')];
-    const shadowElements = [];
-    for (const el of elements) {
-      if (el.shadowRoot) {
-        shadowElements.push(...extractAll(el.shadowRoot));
-      }
-    }
-    return [...elements, ...shadowElements];
-  }
-  return extractAll(document).length;
-})()
-```
-
-If shadow DOM elements exist, re-run section extraction with shadow DOM traversal
-included.
-
-### Cross-Origin Iframes
-
-Cross-origin iframes CANNOT be accessed. When encountered:
-- Note their presence, position, and dimensions
-- Add a placeholder element with matching dimensions
-- Comment in the code: `<!-- Cross-origin iframe: [src] -->`
-- Do NOT attempt to circumvent cross-origin restrictions
+**Do NOT proceed to Phase 4 until every page in the checklist is extracted.**
 
 ---
 
 ## Phase 3 — Extract Interactions
 
-**Only execute if scope is "page with interactions" or "multi-page shell".**
+Execute for every page in scope — interactions are not optional.
 
 ### Step 3.1: Identify Interactive Elements
 
 ```js
 (function() {
-  const interactive = [];
-  document.querySelectorAll(
+  return [...document.querySelectorAll(
     'button, [role="button"], [role="tab"], [role="menuitem"], ' +
     '[data-toggle], [data-dropdown], details, [aria-haspopup], ' +
     '[aria-expanded], select, [role="combobox"], [role="listbox"]'
-  ).forEach(el => {
-    const rect = el.getBoundingClientRect();
-    interactive.push({
-      tag: el.tagName.toLowerCase(),
-      role: el.getAttribute('role'),
-      ariaExpanded: el.getAttribute('aria-expanded'),
-      ariaHaspopup: el.getAttribute('aria-haspopup'),
-      text: el.textContent.trim().slice(0, 50),
-      rect: { x: Math.round(rect.x), y: Math.round(rect.y),
-              w: Math.round(rect.width), h: Math.round(rect.height) },
-      selector: el.id ? `#${el.id}` : undefined
-    });
-  });
-  return interactive;
+  )].filter(el => el.getBoundingClientRect().width > 0).map(el => ({
+    tag: el.tagName.toLowerCase(),
+    role: el.getAttribute('role'),
+    ariaExpanded: el.getAttribute('aria-expanded'),
+    text: el.innerText.trim().slice(0, 50),
+    rect: el.getBoundingClientRect(),
+    selector: el.id ? '#' + el.id : undefined
+  }));
 })()
 ```
 
-### Step 3.2: Activate Each Interaction
+### Step 3.2: Activate and Extract Each Interaction
 
 For each interactive element:
 
 1. **Click it** using `browser_click`
 2. **Wait 500ms** for animations
 3. **Snapshot** the revealed state
-4. **Extract** the revealed element (dropdown, modal, drawer, tooltip):
-   - Structure + styles (same extraction function as Phase 2)
-   - Trigger: what element was clicked
-   - Dismissal: click outside? Escape key? Click toggle?
-   - Positioning: absolute/fixed, anchor element, z-index
-   - Animation: transition properties
-
-5. **Dismiss** the revealed element before proceeding to the next one
+4. **Extract** the revealed element using TreeWalker on the new region
+5. Note: trigger, dismissal method, positioning, z-index, transition
+6. **Dismiss** before proceeding to the next
 
 ### Step 3.3: Tab/Accordion States
 
-For tabbed interfaces:
-- Click each tab, extract each panel's content
-- Note which tab is active by default
-- Extract the tab indicator styling (active state, underline, background)
-
-For accordions:
-- Open each section, extract content
-- Note open/closed default states
+For tabs: click each tab, extract each panel. Note active default + indicator styling.
+For accordions: open each section, extract content. Note default open/closed.
 
 ---
 
 ## Phase 4 — Build
 
+### HARD CHECKPOINT
+
+Before writing a single line of code, verify:
+
+> "I have extraction data for ALL pages in my checklist:
+> - Shared layout: ✓
+> - Page 1: ✓
+> - Page 2: ✓
+> - Page 3: ✓
+>
+> Proceeding to build."
+
+If any page is missing, go back to Phase 2. Do NOT build partial clones.
+
 ### Step 4.1: Detect Target Framework
 
-Check the current working directory for project configuration:
+Check the current working directory:
 
-1. `package.json` → check dependencies for react, vue, svelte, next, astro
-2. `tailwind.config.*` → use Tailwind utility classes
-3. `src/components/` → follow existing naming conventions
-4. `tsconfig.json` → use TypeScript
-
-If no project exists, ask:
-> "No project detected. Should I create:
-> 1. **Standalone HTML + CSS** (most portable, no build step)
-> 2. **New Next.js project** with Tailwind
-> 3. **Add to a specific framework** (tell me which)"
-
-Default to standalone HTML + CSS if the user doesn't have a preference.
+1. `package.json` → react/vue/svelte/next/astro
+2. `tailwind.config.*` → use Tailwind classes
+3. `src/components/` → follow naming conventions
+4. No project → ask user or default to standalone HTML + CSS
 
 ### Step 4.2: Design Tokens
 
-Create a CSS variables file from extracted data:
+Create `variables.css` from extracted colors, typography, and spacing:
 
 ```css
-/* variables.css — extracted from [URL] */
 :root {
-  /* Colors */
-  --color-primary: [extracted];
-  --color-secondary: [extracted];
-  --color-bg: [extracted];
-  --color-text: [extracted];
-  --color-border: [extracted];
-  /* ... top 10-15 colors from palette extraction */
-
-  /* Typography */
-  --font-primary: [extracted font-family];
-  --font-secondary: [extracted font-family];
-  --font-mono: [extracted if present];
-
-  /* Spacing — derived from extracted margins/paddings */
-  --space-xs: [extracted];
-  --space-sm: [extracted];
-  --space-md: [extracted];
-  --space-lg: [extracted];
-  --space-xl: [extracted];
-
-  /* Border radius */
-  --radius-sm: [extracted];
-  --radius-md: [extracted];
-  --radius-lg: [extracted];
+  /* Map extracted rgb() values to semantic names by usage context */
+  --color-text-primary: [most-used text color];
+  --color-text-secondary: [second-most text color];
+  --color-bg-page: [body/main background];
+  --color-bg-sidebar: [sidebar background];
+  /* ... */
 }
 ```
 
-Map extracted `rgba()` values to semantic names based on usage frequency and context.
-
 ### Step 4.3: Build Order
 
-Follow this order strictly — each layer builds on the previous:
-
-1. **Design tokens** (`variables.css`) — colors, typography, spacing
+1. **Design tokens** (`variables.css`)
 2. **Reset/base styles** — normalize, font imports, body defaults
-3. **Layout shell** — the outermost structure (sidebar, main content, header)
-4. **Shared components** — elements reused across sections (buttons, cards, badges)
-5. **Section compositions** — each page section assembled from components
-6. **Real data** — use the ACTUAL text, numbers, and labels scraped from the page
-7. **Interactions** — dropdowns, modals, tabs (if scope includes them)
+3. **Layout shell** — the flex/grid structure (sidebar + main + right sidebar)
+4. **Shared components** — nav items, buttons, cards, badges, expense rows
+5. **Page 1 content** — composed from shared components + page-specific data
+6. **Page 2 content** — reuse components, swap data
+7. **Page 3 content** — reuse components, swap data
+8. **Interactions** — dropdowns, modals, tabs
+
+For multi-page apps: use a simple client-side router or separate HTML files
+linked via the sidebar navigation. Each nav item loads the corresponding page.
 
 ### Step 4.4: Build Rules
 
-These are non-negotiable:
+Non-negotiable:
 
-- **NEVER guess.** If you haven't extracted a value, go back to Phase 2 and get it.
-- **NEVER approximate.** Use exact `getBoundingClientRect()` values. Don't round
-  `14px` to `1rem` unless the type scale clearly shows rem-based sizing.
-- **NEVER use placeholder data.** Use the real text, numbers, and labels from extraction.
-  "Lorem ipsum" is a build failure.
-- **ALWAYS make sticky elements opaque.** Sticky headers/columns without `background-color`
-  cause content to show through. Set explicit background matching the design.
-- **ALWAYS extract transitions.** Static replicas feel dead. Include `transition`
-  properties on hover states, active states, and interactive elements.
-- **ALWAYS include hover states.** Extract `:hover` styles for buttons, links, cards,
-  table rows. A clone without hover states looks broken.
-- **Build components first, then compose.** Don't build page sections monolithically.
-  Identify repeated patterns (cards, list items, table rows) and build them as
-  reusable components.
-- **Respect the original's responsive behavior** where visible. If the extracted page
-  shows flex-wrap or grid auto-fit, preserve it. Don't add responsive breakpoints
-  that weren't in the original.
+- **NEVER guess.** If you haven't extracted it, go extract it.
+- **NEVER approximate.** Use exact `getBoundingClientRect()` values.
+- **NEVER use placeholder data.** Real text, real numbers, real labels.
+- **ALWAYS make sticky elements opaque.** Add explicit `background-color`.
+- **ALWAYS extract transitions.** Static replicas feel dead.
+- **ALWAYS include hover states.** No hover = looks broken.
+- **Build components first, then compose.** Identify repeated patterns.
+- **The shared layout (sidebar, header) must be identical across all pages.**
+  Build it once, include it in every page file.
 
 ### Step 4.5: Handle Images
 
-For the initial build:
-- Use original CDN URLs for images (`src="https://..."`)
-- If images are behind auth or CORS-blocked, use a colored placeholder `div`
-  matching the image dimensions with a comment: `<!-- Image: [original-url] -->`
-- For decorative SVGs: inline them from the extraction data
-- For icons: use inline SVGs, not icon font classes (they won't work without the font)
+- Use original CDN URLs for images
+- If CORS-blocked: colored placeholder `div` with matching dimensions
+- Inline SVGs from extraction data (not icon fonts)
 
 ### Step 4.6: Handle Fonts
 
-Check if the extracted fonts are available:
-
-1. **Google Fonts** — add `<link>` tag or `@import`
-2. **System fonts** — no action needed
-3. **Custom/proprietary fonts** — use the closest Google Font equivalent and note it:
-   ```css
-   /* Original: "Ramp Sans", custom font. Using "Inter" as closest match. */
-   ```
-
-Never attempt to download or host proprietary font files.
+1. **Google Fonts** → `<link>` tag
+2. **System fonts** → no action
+3. **Custom/proprietary** → closest Google Font + comment noting the substitution
 
 ---
 
-## Phase 4.5 — Verification
+## Phase 5 — Verification
 
-Verification is NOT optional. Every build must be checked against the original.
+Verification is NOT optional. Check EVERY page in the checklist.
 
-### Step 4.5.1: Serve the Clone
+### Step 5.1: Serve the Clone
 
 ```bash
-npx serve -l 8000
+npx serve -l [unused-port]
 ```
 
-Or if the project has a dev server (`npm run dev`, `next dev`), use that.
+Check that the port is free first. Don't assume 8000 is available.
 
-### Step 4.5.2: Visual Comparison
+### Step 5.2: Visual Comparison (per page)
 
-1. Navigate Playwright to `http://localhost:8000` (or dev server URL)
+For EACH page in the checklist:
+
+1. Navigate Playwright to the clone's page
 2. Take a screenshot at 1920×1080
-3. Navigate to the original URL
+3. Navigate to the original URL for that page
 4. Take a screenshot at 1920×1080
-5. Compare both visually
+5. Compare visually
 
-### Step 4.5.3: Identify Discrepancies
+### Step 5.3: Fix Top 3 Discrepancies
 
-List the **top 3 most visible discrepancies** between original and clone:
+For each page, identify and fix the 3 most visible discrepancies:
 - Layout misalignment
-- Color differences
-- Typography mismatches
-- Missing elements
+- Missing or mispositioned elements
+- Color / typography mismatches
 - Spacing issues
 
-### Step 4.5.4: Fix and Re-verify
+Fix, re-screenshot, compare. 2 rounds max (6 fixes total per page).
 
-For each discrepancy:
-1. Identify the root cause (wrong extracted value? missed element? CSS specificity?)
-2. Fix it
-3. Re-verify
+### Step 5.4: Final Checklist
 
-Repeat until the top 3 discrepancies are resolved. Then check for the NEXT
-top 3. Stop after 2 rounds of fixes (6 total discrepancies addressed).
+Print the completed checklist:
+
+```
+## Dupe Page Checklist — COMPLETE
+- Shared layout: ✓ extracted  ✓ built
+- Page 1 [name]: ✓ extracted  ✓ built  ✓ verified
+- Page 2 [name]: ✓ extracted  ✓ built  ✓ verified
+- Page 3 [name]: ✓ extracted  ✓ built  ✓ verified
+```
 
 ---
 
 ## Error Handling
 
-Handle failures explicitly. Do not silently skip steps.
-
 | Error | Action |
 |-------|--------|
-| Navigation 4xx/5xx | Tell user, suggest checking URL or authentication |
-| Redirect to login | Invoke auth flow (Phase 1, Step 1.2) |
-| Navigation timeout (>30s) | Retry once. If still failing, warn about possible bot blocking |
-| Extraction returns empty | Try shadow DOM traversal. If still empty, note limitation and move on |
-| Anti-scraping challenge (CAPTCHA, Cloudflare) | Tell user to solve it manually in the browser window, then confirm |
-| Build produces syntax errors | Fix immediately. Never present broken code to the user |
-| 3 failed attempts at same step | STOP. Ask user for guidance. Do not keep retrying |
-| Playwright disconnected | Tell user to restart Claude Code with the plugin loaded |
+| Navigation 4xx/5xx | Tell user, suggest checking URL |
+| Redirect to login | Invoke auth flow (Phase 1.2) |
+| Navigation timeout (>30s) | Retry once, then warn about bot blocking |
+| Extraction returns empty text | Use TreeWalker instead of textContent/innerText |
+| Extraction returns 300K+ chars | Reduce depth, use targeted queries instead |
+| Anti-scraping challenge | Tell user to solve manually in browser |
+| Build produces syntax errors | Fix immediately, never present broken code |
+| 3 failed attempts at same step | STOP and ask user for guidance |
+| Port already in use | Try a different port |
 
 ---
 
 ## Token Intensity & Model Recommendation
 
 Dupe is intentionally token-intensive. A full page extraction + build can use
-50-100k+ tokens and take 5-15 minutes depending on page complexity. This is by
-design — tokens are cheap, rework is expensive. DOM extraction gets it right
-the first time.
+50-100k+ tokens. A multi-page app: 150-300k+. This is by design — tokens are
+cheap, rework is expensive. DOM extraction gets it right the first time.
 
-**Use your strongest model.** Dupe works best with Claude Opus or equivalent.
-The extraction-to-build pipeline requires strong reasoning about layout structure,
-component decomposition, and style inheritance. Cheaper models will cut corners
-on fidelity. This is the one task where you want maximum intelligence.
+**Use your strongest model.** Opus-level reasoning produces pixel-perfect results.
+Cheaper models cut corners on fidelity.
 
-For cost-conscious users: extraction results are cached to `/tmp/dupe-extraction-*.json`.
-You can iterate on the build without re-extracting.
+Extraction results are cached to `/tmp/dupe-extraction-*.json` — iterate on the
+build without re-extracting.
 
 ---
 
@@ -649,13 +599,14 @@ You can iterate on the build without re-extracting.
 ```
 
 ### What Dupe Extracts
-- Real DOM structure (not screenshots)
-- Computed styles (not stylesheet rules)
+- Real DOM structure via targeted queries
+- All visible text via TreeWalker (works on ANY framework)
 - Exact dimensions via `getBoundingClientRect()`
+- Computed styles via whitelisted property list
 - Typography: fonts, sizes, weights, line heights
 - Color palette with usage frequency
 - Interactive states: dropdowns, modals, tabs
-- Real text content, labels, and data
+- Images with CDN URLs
 
 ### What Dupe Does NOT Do
 - Download or host proprietary fonts
@@ -663,4 +614,4 @@ You can iterate on the build without re-extracting.
 - Bypass authentication (you sign in manually)
 - Defeat CAPTCHAs or anti-scraping measures
 - Clone server-side functionality or APIs
-- Replicate animations frame-by-frame (extracts CSS transitions only)
+- Replicate keyframe animations (CSS transitions only)
