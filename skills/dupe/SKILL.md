@@ -156,8 +156,17 @@ If skeletons exist, wait 3 seconds and re-check. After 2 retries, proceed.
 
 ## Phase 2 — Extraction
 
-This is the core of Dupe. The extraction strategy uses **three complementary
-methods**, not one recursive DOM walker:
+This is the core of Dupe. Extraction uses **pre-built JavaScript scripts** bundled
+in the `scripts/` directory. Instead of writing JS inline for each extraction step,
+Claude loads the scripts via Glob + Read, then executes them via `browser_evaluate`.
+
+**Why pre-built scripts?** Inline JS in a skill prompt means Claude regenerates
+extraction code from prose on every run — slow, inconsistent, and burns context.
+Pre-built scripts are deterministic: same code, same results, every time. This
+reduces static extraction to **2 `browser_evaluate` calls per page** (structure +
+visual), down from 8+ inline calls.
+
+The extraction strategy uses **three complementary methods**:
 
 1. **Shallow structure map** — 3 levels deep, identifies major sections
 2. **Targeted element queries** — nav items, buttons, cards, table rows
@@ -182,354 +191,102 @@ For multi-page scope:
 **Check the page checklist after each page extraction.** If any page shows
 "not extracted", you are NOT done with Phase 2.
 
-### Step 2.1: Shallow Structure Map
+### Step 2.0: Load Extraction Scripts
 
-Get the high-level page structure (3 levels deep):
+Find and read the pre-built extraction scripts:
 
-```js
-(function() {
-  function extract(el, depth) {
-    if (depth > 3) return null;
-    const rect = el.getBoundingClientRect();
-    const cs = getComputedStyle(el);
-    if (rect.width === 0 && rect.height === 0) return null;
-    return {
-      tag: el.tagName.toLowerCase(),
-      id: el.id || undefined,
-      classes: el.className && typeof el.className === 'string'
-        ? el.className.split(/\s+/).filter(Boolean).slice(0, 5)
-        : [],
-      rect: { x: Math.round(rect.x), y: Math.round(rect.y),
-              w: Math.round(rect.width), h: Math.round(rect.height) },
-      display: cs.display,
-      position: cs.position,
-      margin: cs.margin, padding: cs.padding,
-      gap: cs.gap, rowGap: cs.rowGap, columnGap: cs.columnGap,
-      transition: cs.transition !== 'all 0s ease 0s' ? cs.transition : undefined,
-      childCount: el.children.length,
-      children: [...el.children].map(c => extract(c, depth + 1)).filter(Boolean)
-    };
-  }
-  return extract(document.body, 0);
-})()
+1. **Glob** for `**/scripts/extract-structure.js` and `**/scripts/extract-visual.js`
+2. **Read** both files into memory — these are the scripts you'll pass to `browser_evaluate`
+3. Also Glob for `**/scripts/extract-hover.js` — you'll need this for hover states later
+
+**If Glob returns no results** (scripts missing from plugin cache):
+1. Glob for `**/extraction-reference.md`
+2. Read that file — it contains the same extraction JS as inline code blocks
+3. Use those code blocks as individual `browser_evaluate` calls (8+ calls, legacy pattern)
+4. Log a warning: "Extraction scripts not found, using inline fallback"
+
+If BOTH Glob searches fail, stop and tell the user:
+> "Extraction scripts are missing. Reinstall the plugin or check that `skills/dupe/scripts/` exists."
+
+### Step 2.1: Structure Extraction
+
+Execute `extract-structure.js` as ONE `browser_evaluate` call:
+
+```
+browser_evaluate → [contents of extract-structure.js]
 ```
 
-From this, identify: sidebar, header/banner, main content area, right sidebar,
-footer. Note their CSS selectors and layout properties (flex, grid, dimensions).
+This single call returns `{ structure, contentInventory, textNodes }`:
+
+- **structure** — 3-level DOM map with `getBoundingClientRect()` + `getComputedStyle()`
+  (display, position, margin, padding, gap, rowGap, columnGap, transition)
+- **contentInventory** — tab groups (count + labels), hidden panels, dropdowns
+  (text + option count), forms, scrollable regions
+- **textNodes** — TreeWalker scan of ALL visible text with position, parentTag,
+  fontSize, fontWeight, color, lineHeight, letterSpacing
+
+From the structure, identify: sidebar, header/banner, main content area, right
+sidebar, footer. Note their CSS selectors and layout properties.
 
 **Box model values** (`margin`, `padding`, `gap`) are critical —
 `getBoundingClientRect()` gives size and position but not internal spacing.
-Without these, the build agent will guess padding values and get them wrong.
 
-**Transition values** must be extracted here. If `transition` is non-default
-(anything other than `all 0s ease 0s`), include it. Static replicas without
-transitions feel dead — you can't add what you didn't extract.
+**Transition values** are included. If `transition` is non-default (anything other
+than `all 0s ease 0s`), it appears in the data. Static replicas without transitions
+feel dead.
 
-### Step 2.1.5: Content Inventory
+**Size guard:** If textNodes exceed 20KB, the script self-truncates to 150 nodes
+and sets `_truncated: true`. If truncated, re-run for specific regions by modifying
+the script's TreeWalker bounds before executing.
 
-Before targeted extraction, inventory ALL interactive containers on the page:
+### Step 2.2: Visual Extraction
 
-```js
-(function() {
-  const inventory = {
-    tabGroups: [...document.querySelectorAll('[role="tablist"], [data-tab-group]')].map(g => ({
-      tabCount: g.querySelectorAll('[role="tab"], [data-tab]').length,
-      labels: [...g.querySelectorAll('[role="tab"], [data-tab]')].map(t => t.textContent.trim())
-    })),
-    hiddenPanels: document.querySelectorAll('[hidden], [aria-hidden="true"], [style*="display: none"]').length,
-    dropdowns: [...document.querySelectorAll('[data-dropdown], [aria-haspopup], select')].map(d => ({
-      text: d.textContent.trim().slice(0, 30),
-      optionCount: d.querySelectorAll('option, [role="option"], li').length
-    })),
-    forms: document.querySelectorAll('form, [role="form"]').length,
-    scrollableRegions: [...document.querySelectorAll('[style*="overflow"], table')].length
-  };
-  return inventory;
-})()
+Execute `extract-visual.js` as ONE `browser_evaluate` call:
+
+```
+browser_evaluate → [contents of extract-visual.js]
 ```
 
-Log these in the extraction JSON under `contentInventory`. Mark each as "extracted"
-or "pending". Phase 2 is NOT done until all items are extracted.
+This single call returns `{ sidebar, buttons, tables, images, svgIcons, typography }`:
 
-For each tab group: click EVERY tab and extract the revealed panel content.
-For each table: scroll to the rightmost column and extract ALL column headers.
-For each dropdown: open it and extract all options.
-For forms that change per tab: extract form fields for EACH tab state.
+- **sidebar** — nav items with rect, styles (color, backgroundColor, fontSize,
+  fontWeight, fontFamily, padding, borderRadius, gap, display, alignItems),
+  SVG icons (outerHTML capped at 1500 chars), active state detection
+- **buttons** — all buttons/CTAs >80px wide with full computed styles
+- **tables** — per-table: display, tableLayout, borderCollapse, all `<th>` headers
+  (text, backgroundColor, padding, fontSize, fontWeight, position, left, right,
+  zIndex, width, borderBottom), sample `<td>` cells with same properties
+- **images** — all `<img>` >5px with src, alt, rect, borderRadius
+- **svgIcons** — all `<svg>` with outerHTML (capped at 2000 chars), rect,
+  parentSelector, parentText. NEVER substitute icon libraries for extracted SVGs.
+- **typography** — fontFamilies, typeScale (top 15 by size), colorPalette (top 20
+  by frequency)
 
-### Step 2.2: Targeted Element Extraction
-
-For each major section, use TARGETED queries — not a deep recursive walk.
-Extract the actual elements you care about.
-
-**After extracting visible content, you MUST also:**
+**After the two static calls, you MUST also:**
 1. Click each tab → extract the revealed panel content
 2. Scroll each table to its rightmost column → extract ALL column headers and widths
 3. Open each dropdown → extract all options
 4. For forms that change per tab: extract form fields for EACH tab state
 
-**Navigation / sidebar items:**
-```js
-(function() {
-  const sidebar = document.querySelector('aside, nav, [class*="sidebar"], [class*="Sidebar"]');
-  if (!sidebar) return { error: 'No sidebar found' };
-  const items = [];
-  sidebar.querySelectorAll('a, button, [role="button"]').forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-    const cs = getComputedStyle(el);
-    const svg = el.querySelector('svg');
-    items.push({
-      tag: el.tagName.toLowerCase(),
-      href: el.href || undefined,
-      innerText: el.innerText.trim().split('\n')[0],
-      rect: { x: Math.round(rect.x), y: Math.round(rect.y),
-              w: Math.round(rect.width), h: Math.round(rect.height) },
-      styles: {
-        color: cs.color, backgroundColor: cs.backgroundColor,
-        fontSize: cs.fontSize, fontWeight: cs.fontWeight,
-        fontFamily: cs.fontFamily, padding: cs.padding,
-        borderRadius: cs.borderRadius, gap: cs.gap,
-        display: cs.display, alignItems: cs.alignItems
-      },
-      svg: svg ? svg.outerHTML.slice(0, 1500) : undefined,
-      isActive: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
-                cs.fontWeight === '600' || cs.fontWeight === '700'
-    });
-  });
-  return { containerRect: sidebar.getBoundingClientRect(), items };
-})()
-```
+### Step 2.3: Hover State Extraction
 
-**Buttons and CTAs** (filter by position/region):
-```js
-(function() {
-  return [...document.querySelectorAll('a[role="button"], button')]
-    .filter(el => el.getBoundingClientRect().width > 80)
-    .map(el => {
-      const r = el.getBoundingClientRect();
-      const cs = getComputedStyle(el);
-      return {
-        text: el.innerText.trim(),
-        rect: { x: Math.round(r.x), y: Math.round(r.y),
-                w: Math.round(r.width), h: Math.round(r.height) },
-        backgroundColor: cs.backgroundColor, color: cs.color,
-        border: cs.border, borderRadius: cs.borderRadius,
-        fontSize: cs.fontSize, fontWeight: cs.fontWeight,
-        padding: cs.padding, href: el.href || undefined
-      };
-    });
-})()
-```
+Hover states are pseudo-classes that only activate on mouse interaction —
+`getComputedStyle()` on a static page will NEVER capture them.
 
-**Hover states:** For each interactive element (buttons, links, nav items, cards),
-use Playwright to hover and extract the changed computed styles. Hover states are
-pseudo-classes that only activate on mouse interaction — `getComputedStyle()` on a
-static page will NEVER capture them:
+For each interactive element (buttons, links, nav items, cards):
 
-```
-// For each interactive selector:
-browser_hover → [selector]
-browser_evaluate →
-(function() {
-  const el = document.querySelector('[selector]');
-  const cs = getComputedStyle(el);
-  return {
-    backgroundColor: cs.backgroundColor, color: cs.color,
-    textDecoration: cs.textDecoration, borderColor: cs.borderColor,
-    boxShadow: cs.boxShadow, opacity: cs.opacity,
-    outline: cs.outline
-  };
-})()
-```
+1. Read `extract-hover.js` (already loaded in Step 2.0)
+2. Replace `SELECTOR_PLACEHOLDER` with the element's CSS selector
+3. Use `browser_hover` on the element
+4. Execute the modified script via `browser_evaluate`
+
+The script returns: backgroundColor, color, textDecoration, borderColor,
+boxShadow, opacity, outline, transform, filter.
 
 Include hover data in the extraction JSON under a `hoverStates` key, keyed by
 element selector or description.
 
-**Tables:** For every `<table>`, extract: `display`, `tableLayout`, `borderCollapse`.
-For each `<th>` and `<td>`: `backgroundColor`, `padding`, `borderBottom`, `fontSize`,
-`fontWeight`, `position`, `left`, `right`, `zIndex`, `width`. Document which columns
-are sticky and their offset values. Tables are commonly missed because they aren't
-covered by the targeted queries above:
-
-```js
-(function() {
-  return [...document.querySelectorAll('table')].map(table => {
-    const cs = getComputedStyle(table);
-    const headers = [...table.querySelectorAll('th')].map(th => {
-      const thCs = getComputedStyle(th);
-      return {
-        text: th.textContent.trim(),
-        backgroundColor: thCs.backgroundColor, padding: thCs.padding,
-        fontSize: thCs.fontSize, fontWeight: thCs.fontWeight,
-        position: thCs.position, left: thCs.left, right: thCs.right,
-        zIndex: thCs.zIndex, width: thCs.width, borderBottom: thCs.borderBottom
-      };
-    });
-    const firstRow = table.querySelector('tbody tr');
-    const cells = firstRow ? [...firstRow.querySelectorAll('td')].map(td => {
-      const tdCs = getComputedStyle(td);
-      return {
-        backgroundColor: tdCs.backgroundColor, padding: tdCs.padding,
-        fontSize: tdCs.fontSize, fontWeight: tdCs.fontWeight,
-        position: tdCs.position, left: tdCs.left, right: tdCs.right,
-        zIndex: tdCs.zIndex, width: tdCs.width, borderBottom: tdCs.borderBottom
-      };
-    }) : [];
-    return {
-      display: cs.display, tableLayout: cs.tableLayout,
-      borderCollapse: cs.borderCollapse,
-      headers, sampleCells: cells
-    };
-  });
-})()
-```
-
-### Step 2.3: TreeWalker Text Extraction (THE PRIMARY METHOD)
-
-This is the most important extraction step. It finds ALL visible text nodes
-with their exact position, parent tag, and computed styles. It works on ANY
-framework — React, Vue, Svelte, vanilla — because it reads the rendered DOM,
-not the component tree.
-
-Run this per page region. Replace the coordinate bounds for each section:
-
-```js
-(function() {
-  // ADJUST THESE BOUNDS for each page region
-  const BOUNDS = { xMin: 0, xMax: 1920, yMin: 0, yMax: 5000 };
-  const items = [];
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-    acceptNode: (node) => {
-      if (!node.textContent.trim()) return NodeFilter.FILTER_REJECT;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      const r = range.getBoundingClientRect();
-      if (r.x >= BOUNDS.xMin && r.x <= BOUNDS.xMax &&
-          r.y >= BOUNDS.yMin && r.y <= BOUNDS.yMax && r.width > 0) {
-        return NodeFilter.FILTER_ACCEPT;
-      }
-      return NodeFilter.FILTER_REJECT;
-    }
-  });
-
-  while (walker.nextNode()) {
-    const node = walker.currentNode;
-    const range = document.createRange();
-    range.selectNodeContents(node);
-    const r = range.getBoundingClientRect();
-    const parent = node.parentElement;
-    const cs = parent ? getComputedStyle(parent) : null;
-    items.push({
-      text: node.textContent.trim(),
-      rect: { x: Math.round(r.x), y: Math.round(r.y),
-              w: Math.round(r.width), h: Math.round(r.height) },
-      parentTag: parent?.tagName?.toLowerCase(),
-      fontSize: cs?.fontSize, fontWeight: cs?.fontWeight,
-      color: cs?.color, lineHeight: cs?.lineHeight,
-      letterSpacing: cs?.letterSpacing
-    });
-  }
-  return items;
-})()
-```
-
-**Why this works where `textContent`/`innerText` fail:** Styled-components,
-CSS-in-JS, and similar frameworks generate deeply nested wrapper `<div>` elements.
-A React `<a>` tag might contain 8 nested divs before reaching the actual text node.
-`element.textContent` traverses down but often returns empty on the `<a>` itself
-because the content is in child elements the browser treats differently.
-TreeWalker goes directly to the text nodes — no wrapper noise.
-
-### Step 2.4: Images and Assets
-
-```js
-(function() {
-  return [...document.querySelectorAll('img')].filter(el => {
-    const r = el.getBoundingClientRect();
-    return r.width > 5 && r.height > 5;
-  }).map(el => ({
-    src: el.src, alt: el.alt,
-    rect: { x: Math.round(el.getBoundingClientRect().x),
-            y: Math.round(el.getBoundingClientRect().y),
-            w: Math.round(el.getBoundingClientRect().width),
-            h: Math.round(el.getBoundingClientRect().height) },
-    borderRadius: getComputedStyle(el).borderRadius
-  }));
-})()
-```
-
-### Step 2.4.5: SVG Icon Extraction
-
-For every `<svg>` element on the page, extract the full markup:
-
-```js
-(function() {
-  return [...document.querySelectorAll('svg')].filter(el => {
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
-  }).map(el => {
-    const r = el.getBoundingClientRect();
-    const parent = el.closest('a, button, [role="button"], li, div');
-    return {
-      outerHTML: el.outerHTML.slice(0, 2000),
-      rect: { x: Math.round(r.x), y: Math.round(r.y),
-              w: Math.round(r.width), h: Math.round(r.height) },
-      parentSelector: parent ? (parent.className || parent.tagName) : 'unknown',
-      parentText: parent ? parent.textContent.trim().slice(0, 50) : ''
-    };
-  });
-})()
-```
-
-Store in extraction JSON under `svgIcons` keyed by parent selector or description.
-NEVER substitute feather/lucide/heroicons for extracted SVGs. The actual SVG markup
-IS the icon — there is no approximation.
-
-### Step 2.5: Typography + Color Palette
-
-Run these once per site (not per page):
-
-```js
-(function() {
-  const fonts = new Set();
-  const typeScale = [];
-  const seen = new Set();
-  document.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a,span,li,td,th,label,button,input').forEach(el => {
-    const cs = getComputedStyle(el);
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-    fonts.add(cs.fontFamily);
-    const key = cs.fontSize + '|' + cs.fontWeight + '|' + cs.lineHeight;
-    if (!seen.has(key)) {
-      seen.add(key);
-      typeScale.push({
-        tag: el.tagName.toLowerCase(),
-        sample: el.textContent.trim().slice(0, 40),
-        fontSize: cs.fontSize, fontWeight: cs.fontWeight,
-        lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing,
-        fontFamily: cs.fontFamily, color: cs.color
-      });
-    }
-  });
-
-  const colors = new Map();
-  document.querySelectorAll('*').forEach(el => {
-    const cs = getComputedStyle(el);
-    [cs.color, cs.backgroundColor, cs.borderColor].forEach(c => {
-      if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent')
-        colors.set(c, (colors.get(c) || 0) + 1);
-    });
-  });
-
-  return {
-    fontFamilies: [...fonts],
-    typeScale: typeScale.sort((a, b) => parseFloat(b.fontSize) - parseFloat(a.fontSize)).slice(0, 15),
-    colorPalette: [...colors.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([color, count]) => ({ color, count }))
-  };
-})()
-```
-
-### Step 2.6: Cache Extraction Results
+### Step 2.4: Cache Extraction Results
 
 Write ALL extraction data to `/tmp/dupe-extraction-{domain}.json` using the
 Bash tool. Include: URL, viewport, timestamp, structure map, all targeted
@@ -551,7 +308,7 @@ pixel value in the build must trace back to a number in this JSON file.
 
 If ANY check fails: go back and extract the missing data. Do NOT proceed to Phase 4.
 
-### Step 2.7: Extract URL Sitemap
+### Step 2.5: Extract URL Sitemap
 
 Document every page URL and how the navigation maps to it. For each nav link,
 record the `href` attribute AND the resolved URL. Write the sitemap to the
@@ -569,14 +326,14 @@ In Phase 4, file/folder structure MUST mirror these paths. Use `index.html` insi
 directories to produce clean URLs. All nav `href` values must match the real URL
 paths — not simplified file names like `expenses.html`.
 
-### Step 2.8: CHECKPOINT — Review the Page Checklist
+### Step 2.6: CHECKPOINT — Review the Page Checklist
 
 Print the page checklist. Mark the current page as "extracted". If there are
 unextracted pages remaining:
 
 1. Navigate Playwright to the next page URL
 2. Wait for load + lazy content
-3. Re-run Steps 2.2–2.4 for the NEW page's content (skip shared layout)
+3. Re-run Steps 2.1–2.3 for the NEW page's content (skip shared layout)
 4. Cache the new extraction data
 5. Return to this checkpoint
 
@@ -588,37 +345,33 @@ unextracted pages remaining:
 
 Execute for every page in scope — interactions are not optional.
 
-### Step 3.1: Identify Interactive Elements
+### Step 3.1: Load Interaction Script
 
-```js
-(function() {
-  return [...document.querySelectorAll(
-    'button, [role="button"], [role="tab"], [role="menuitem"], ' +
-    '[data-toggle], [data-dropdown], details, [aria-haspopup], ' +
-    '[aria-expanded], select, [role="combobox"], [role="listbox"]'
-  )].filter(el => el.getBoundingClientRect().width > 0).map(el => ({
-    tag: el.tagName.toLowerCase(),
-    role: el.getAttribute('role'),
-    ariaExpanded: el.getAttribute('aria-expanded'),
-    text: el.innerText.trim().slice(0, 50),
-    rect: el.getBoundingClientRect(),
-    selector: el.id ? '#' + el.id : undefined
-  }));
-})()
-```
+1. **Glob** for `**/scripts/extract-interaction.js`
+2. **Read** the script into memory
 
-### Step 3.2: Activate and Extract Each Interaction
+If not found, fall back to `extraction-reference.md` (Interactive Element Inventory section).
+
+### Step 3.2: Identify Interactive Elements
+
+Run `extract-interaction.js` with full-page bounds as ONE `browser_evaluate` call:
+
+Replace `BOUNDS_PLACEHOLDER` with `{ xMin: 0, xMax: 1920, yMin: 0, yMax: 5000 }`
+and execute. This returns `{ interactiveElements, textNodes }` — use the
+`interactiveElements` list to know what to click.
+
+### Step 3.3: Activate and Extract Each Interaction
 
 For each interactive element:
 
 1. **Click it** using `browser_click`
 2. **Wait 500ms** for animations
-3. **Snapshot** the revealed state
-4. **Extract** the revealed element using TreeWalker on the new region
-5. Note: trigger, dismissal method, positioning, z-index, transition
-6. **Dismiss** before proceeding to the next
+3. **Execute** `extract-interaction.js` with bounds scoped to the revealed region
+   (replace `BOUNDS_PLACEHOLDER` with the region's bounding rect)
+4. Note: trigger, dismissal method, positioning, z-index, transition
+5. **Dismiss** before proceeding to the next
 
-### Step 3.3: Tab/Accordion States
+### Step 3.4: Tab/Accordion States
 
 For tabs: click each tab, extract each panel. Note active default + indicator styling.
 For accordions: open each section, extract content. Note default open/closed.
