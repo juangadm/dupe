@@ -291,8 +291,12 @@ element selector or description.
 ### Step 2.4: Cache Extraction Results
 
 Write ALL extraction data to `/tmp/dupe-extraction-{domain}.json` using the
-Bash tool. Include: URL, viewport, timestamp, structure map, all targeted
-extractions, all TreeWalker scans, typography, colors, images.
+**Write tool** (NOT Bash, NOT Python). The Write tool creates the file silently
+with a clean one-line permission prompt. Never generate inline Python or shell
+scripts to write JSON — it creates a terrible user experience.
+
+Include: URL, viewport, timestamp, structure map, all targeted extractions,
+all TreeWalker scans, typography, colors, images.
 
 If the build fails later, you can re-run Phase 4 from cache without re-extracting.
 
