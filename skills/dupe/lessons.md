@@ -231,3 +231,18 @@ minimum count (5+ per page), and a verification print statement.
 The travel page showed "Multi-city" as a radio option that doesn't exist on the real site.
 Claude fabricated it because the interaction extraction never clicked the radio group.
 Add explicit rules: never fabricate options, and if not extracted, build in closed state.
+
+## Lesson 34: Never use inline Python/Node scripts via Bash
+
+Claude used `node -e` and `cat | python3 -c` to parse extraction results and write the
+cache JSON. These produce terrifying 20+ line Bash permission prompts with import
+statements, file paths, and string manipulation that users cannot evaluate. The fix:
+use Read tool to read files, compose JSON in reasoning, use Write tool to save. Ban
+`python3 -c`, `node -e`, and all inline scripts entirely — no exceptions.
+
+## Lesson 35: Do not resize the browser viewport
+
+Resizing Playwright to 1920×1080 clips content on laptops with smaller screens. The
+right side of the page moves off-screen, and extraction misses those elements. Use
+whatever viewport the browser opens with — getBoundingClientRect() captures exact
+values regardless of viewport size.
