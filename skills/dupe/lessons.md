@@ -307,3 +307,70 @@ This gives the build agent the exact variable names and values the site uses.
 **SKILL.md change:** `extract-visual.js` now includes a `cssCustomProperties`
 section. New build rule tells the build agent to use these as the foundation
 for `variables.css`.
+
+## Lesson 41: Verification must be quantitative, not subjective
+
+Phase 5 originally said "take screenshots and compare visually" — which means the
+LLM eyeballs two images and says "looks close." This produces false positives every
+time. The fix: extract quantitative fingerprints (color grids, element counts, landmark
+positions) from both original and clone, diff the numbers, and apply pass/warn/fail
+thresholds. A number like "78% color grid match" is actionable. "Looks similar" is not.
+
+**SKILL.md change:** Phase 5 rewritten to use `verify-structure.js` and `verify-visual.js`
+with explicit acceptance thresholds.
+
+## Lesson 42: Annotated screenshots solve the "which element?" problem
+
+When comparing two screenshots, the LLM says "the button on the right side is too wide"
+— but which button? On a dense page there are 30+ buttons. Numbered annotations
+(`verify-annotate.js`) inject red circle labels on every interactive element so both
+the LLM and the user can reference elements by number: "Element #7 is 15px wider in
+the clone." This removes ambiguity from the verification report.
+
+**SKILL.md change:** Phase 5 Step 5.4 uses annotated screenshots with element matching.
+
+## Lesson 43: Structural fingerprints catch completeness failures that screenshots miss
+
+A screenshot of a page with 3 tabs looks identical whether the other 2 tab panels
+have content or not — they're hidden. `verify-structure.js` counts interactive elements,
+headings, text nodes, nav links, and form fields. If the original has 12 interactive
+elements and the clone has 7, that's a measurable gap. Structural comparison catches
+missing tabs, missing form fields, and incomplete navigation that visual comparison
+can't see.
+
+**SKILL.md change:** Phase 5 Step 5.2 diffs element counts, heading hierarchies,
+and interactive inventories with thresholds.
+
+## Lesson 44: Visual fingerprints work without pixel-level image comparison
+
+`browser_take_screenshot` saves images to disk — but those images can't be loaded
+into a canvas for `pixelmatch`-style comparison inside `browser_evaluate`. The workaround:
+sample a 16×12 grid of background colors via `elementFromPoint()` on both pages. Two
+cells match if each RGB channel differs by ≤30. This gives a quantitative "color grid
+match %" without needing pixel-level image access. Combined with landmark position
+comparison, this catches layout shifts, color mismatches, and missing sections.
+
+**SKILL.md change:** Phase 5 Step 5.3 uses color grid and landmark position comparison.
+
+## Lesson 45: Interaction testing needs a testable inventory, not ad-hoc clicking
+
+Phase 5 originally said "click every interactive element" but didn't tell the agent
+which elements to click or what to expect. `verify-interactions.js` classifies every
+interactive element by type (tab/dropdown/accordion/button/input) and provides the
+best CSS selector and expected behavior. The agent clicks each one, takes a snapshot
+before/after, and evaluates whether the expected behavior occurred. This makes
+interaction testing deterministic instead of exploratory.
+
+**SKILL.md change:** Phase 5 Step 5.5 uses interaction inventory with per-element
+pass/fail reporting.
+
+## Lesson 46: Verification scripts must follow the same conventions as extraction scripts
+
+The `verify-*.js` scripts use the same conventions as `extract-*.js`: `var` declarations,
+`function` keyword, `Array.from()`, no IIFE wrapper, bare `return result` at the end,
+size guard with `_truncated` flag, header comment with filename/purpose/return type.
+Consistency means the Phase 5 instructions don't need special handling — the agent
+already knows how to load and run these scripts from Phase 2 experience.
+
+**SKILL.md change:** Step 5.0 loads verify scripts the same way Step 2.0 loads
+extraction scripts.
