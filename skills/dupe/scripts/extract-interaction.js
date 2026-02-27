@@ -63,8 +63,65 @@ while (walker.nextNode()) {
   });
 }
 
+// --- 3. Form Fields in Revealed Region ---
+var formFields = Array.from(document.querySelectorAll(
+  'input, select, textarea, [role="combobox"], [contenteditable]'
+)).filter(function(el) {
+  var r = el.getBoundingClientRect();
+  return r.width > 0 &&
+         r.x >= BOUNDS.xMin && r.x <= BOUNDS.xMax &&
+         r.y >= BOUNDS.yMin && r.y <= BOUNDS.yMax;
+}).map(function(el) {
+  var r = el.getBoundingClientRect();
+  var cs = getComputedStyle(el);
+  var label = el.labels && el.labels[0] ? el.labels[0].textContent.trim() :
+              (el.getAttribute('aria-label') || el.getAttribute('placeholder') || '');
+  var options = el.tagName === 'SELECT' ? Array.from(el.options).map(function(o) {
+    return { text: o.textContent.trim(), value: o.value, selected: o.selected };
+  }) : undefined;
+  return {
+    tag: el.tagName.toLowerCase(),
+    type: el.type || undefined,
+    name: el.name || undefined,
+    placeholder: el.placeholder || undefined,
+    value: el.value || undefined,
+    label: label,
+    options: options,
+    rect: { x: Math.round(r.x), y: Math.round(r.y),
+            w: Math.round(r.width), h: Math.round(r.height) },
+    styles: {
+      backgroundColor: cs.backgroundColor, color: cs.color,
+      border: cs.border, borderRadius: cs.borderRadius,
+      fontSize: cs.fontSize, fontWeight: cs.fontWeight,
+      padding: cs.padding, height: cs.height, width: cs.width
+    }
+  };
+});
+
+// --- 4. Container Spacing (gap between form fields) ---
+var formContainers = Array.from(document.querySelectorAll(
+  'form, [class*="form"], [class*="Form"], fieldset'
+)).filter(function(el) {
+  var r = el.getBoundingClientRect();
+  return r.width > 0 &&
+         r.x >= BOUNDS.xMin && r.x <= BOUNDS.xMax &&
+         r.y >= BOUNDS.yMin && r.y <= BOUNDS.yMax;
+}).map(function(el) {
+  var cs = getComputedStyle(el);
+  return {
+    display: cs.display, flexDirection: cs.flexDirection,
+    gap: cs.gap, rowGap: cs.rowGap, columnGap: cs.columnGap,
+    padding: cs.padding, gridTemplateColumns: cs.gridTemplateColumns
+  };
+});
+
 // --- Size Guard ---
-var result = { interactiveElements: interactiveElements, textNodes: textNodes };
+var result = {
+  interactiveElements: interactiveElements,
+  textNodes: textNodes,
+  formFields: formFields,
+  formContainers: formContainers
+};
 var serialized = JSON.stringify(result);
 if (serialized.length > 20000) {
   result.textNodes = textNodes.slice(0, 100);
