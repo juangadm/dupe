@@ -249,11 +249,13 @@ Execute `extract-visual.js` as ONE `browser_evaluate` call:
 browser_evaluate → [contents of extract-visual.js]
 ```
 
-This single call returns `{ sidebar, buttons, tables, images, svgIcons, typography }`:
+This single call returns `{ sidebar, buttons, tables, images, svgIcons, progressBars, statusIndicators, typography }`:
 
-- **sidebar** — nav items with rect, styles (color, backgroundColor, fontSize,
-  fontWeight, fontFamily, padding, borderRadius, gap, display, alignItems),
-  SVG icons (outerHTML capped at 1500 chars), active state detection
+- **sidebar** — containerStyles (width, backgroundColor, border, padding, position,
+  overflow, display, flexDirection, gap, zIndex, boxShadow) + nav items with rect,
+  styles (color, backgroundColor, fontSize, fontWeight, fontFamily, padding,
+  borderRadius, gap, display, alignItems), SVG icons (outerHTML capped at 1500
+  chars), active state detection
 - **buttons** — all buttons/CTAs >80px wide with full computed styles
 - **tables** — per-table: display, tableLayout, borderCollapse, all `<th>` headers
   (text, backgroundColor, padding, fontSize, fontWeight, position, left, right,
@@ -261,6 +263,11 @@ This single call returns `{ sidebar, buttons, tables, images, svgIcons, typograp
 - **images** — all `<img>` >5px with src, alt, rect, borderRadius
 - **svgIcons** — all `<svg>` with outerHTML (capped at 2000 chars), rect,
   parentSelector, parentText. NEVER substitute icon libraries for extracted SVGs.
+- **progressBars** — progress/meter/budget bar elements with value, max, styles
+  (backgroundColor, borderRadius, height, width), parent styles, nearby text
+- **statusIndicators** — badges, chips, dots, tags with text, styles (colors,
+  border, fontSize, padding), SVG content if present, ::before pseudo-element
+  data (content, backgroundColor, dimensions, borderRadius)
 - **typography** — fontFamilies, typeScale (top 15 by size), colorPalette (top 20
   by frequency)
 
@@ -270,23 +277,33 @@ This single call returns `{ sidebar, buttons, tables, images, svgIcons, typograp
 3. Open each dropdown → extract all options
 4. For forms that change per tab: extract form fields for EACH tab state
 
-### Step 2.3: Hover State Extraction
+### Step 2.3: Hover State Extraction (MANDATORY — NOT OPTIONAL)
 
 Hover states are pseudo-classes that only activate on mouse interaction —
 `getComputedStyle()` on a static page will NEVER capture them.
 
-For each interactive element (buttons, links, nav items, cards):
+**You MUST extract hover states for AT MINIMUM these elements:**
+- [ ] Every sidebar nav item (browser_hover → extract-hover.js)
+- [ ] Every button/CTA in the main content area
+- [ ] Every table row (at least one sample row)
+- [ ] Every card or clickable list item
+- [ ] Every link in the header/banner
 
-1. Read `extract-hover.js` (already loaded in Step 2.0)
+**Process per element:**
+1. Read `extract-hover.js` (loaded in Step 2.0)
 2. Replace `SELECTOR_PLACEHOLDER` with the element's CSS selector
-3. Use `browser_hover` on the element
-4. Execute the modified script via `browser_evaluate`
+3. `browser_hover` on the element
+4. `browser_evaluate` with the modified script
+5. Store the result keyed by element description
 
-The script returns: backgroundColor, color, textDecoration, borderColor,
-boxShadow, opacity, outline, transform, filter.
+**Minimum hover count:** If the page has N interactive elements (from Step 2.1
+contentInventory), you must extract hover states for at least `min(N, 10)` of them.
+If you extract fewer than 5 hover states for a page, STOP — you missed elements.
 
-Include hover data in the extraction JSON under a `hoverStates` key, keyed by
-element selector or description.
+Include ALL hover data in the extraction JSON under a `hoverStates` key.
+
+**Verification:** Before proceeding, count hover states in your extraction data.
+Print: "Hover states extracted: X elements." If X < 5, go back.
 
 ### Step 2.4: Cache Extraction Results
 
@@ -311,6 +328,12 @@ pixel value in the build must trace back to a number in this JSON file.
 - [ ] Every form section has field data for each variant
 - [ ] interactionDepth requirements are met for each page
 - [ ] SVG icons are captured (not approximated)
+- [ ] Sidebar container has border/background styles (not just items)
+- [ ] Per-page background color is captured (main content area, not just body)
+- [ ] Progress bars / budget bars are captured if visible on page
+- [ ] Status indicators (badges, dots, chips) are captured with their colors
+- [ ] Hover states extracted for minimum 5 elements per page
+- [ ] Font families extracted — if proprietary, note the substitution plan
 
 If ANY check fails: go back and extract the missing data. Do NOT proceed to Phase 4.
 
@@ -381,6 +404,28 @@ For each interactive element:
 
 For tabs: click each tab, extract each panel. Note active default + indicator styling.
 For accordions: open each section, extract content. Note default open/closed.
+
+### Step 3.5: Interaction Completeness Checklist (MANDATORY)
+
+Before leaving Phase 3, verify EVERY interaction meets its depth requirement:
+
+**For EACH page in the checklist, print this table:**
+
+| Element | Type | Depth Required | States Extracted | Status |
+|---------|------|---------------|-----------------|--------|
+| Tabs (e.g., "Flights/Hotels") | tab group | depth 2 | 2/2 tabs clicked | ✓ |
+| Dropdown (e.g., "Economy") | dropdown | depth 2 | 4 options extracted | ✓ |
+| Date picker | form field | depth 1 | placeholder + format | ✓ |
+
+**Rules:**
+- Depth 2 means EVERY variant was clicked and its content extracted
+- If a dropdown has options, EVERY option text must be in the extraction JSON
+- If a tab shows different form fields, EACH tab's form must be extracted separately
+- **NEVER fabricate dropdown options.** If you didn't click the dropdown and read
+  the options from the DOM, you don't have them. Write "options not extracted" in
+  the JSON and the build must show a closed dropdown (no fake options).
+
+If ANY row shows incomplete status, go back and extract it. Do NOT proceed to Phase 4.
 
 ---
 
@@ -509,6 +554,18 @@ Non-negotiable:
 - **VERIFY plan assumptions with math before implementing.** If the plan says "remove padding," calculate: does removing it produce the correct element width? If 298px sidebar − 282px buttons = 16px, the 8px/side padding is correct.
 - **EVERY interactive tab must have content.** A tab with no panel content is worse than no tab at all. If a Reimbursements tab exists, it MUST show filtered data when clicked.
 - **SVG icons must be extracted verbatim.** NEVER substitute feather/lucide/heroicons for real SVGs. The extracted `outerHTML` IS the icon.
+- **NEVER fabricate dropdown options.** If the extraction JSON doesn't list
+  specific options for a dropdown (e.g., "Economy, Business, First Class"), do NOT
+  invent them. Build the dropdown in its default closed state with only the
+  default value visible. Fabricated options are worse than a closed dropdown —
+  they tell the user the clone is fake.
+- **NEVER fabricate form field options that weren't in the extraction.** If the
+  Travel page extraction shows "Round trip" as the only visible radio option, build
+  ONLY "Round trip". Do not add "One way" or "Multi-city" unless they appear in
+  the extraction JSON.
+- **Form field placeholders must be verbatim.** If the extraction shows
+  `placeholder: "Search airports"`, use exactly that string. Do not paraphrase
+  to "Enter departure city" or any other approximation.
 
 ### Step 4.5: Handle Images
 
@@ -518,9 +575,17 @@ Non-negotiable:
 
 ### Step 4.6: Handle Fonts
 
-1. **Google Fonts** → `<link>` tag
+1. **Google Fonts** → `<link>` tag with exact font name from extraction
 2. **System fonts** → no action
-3. **Custom/proprietary** → closest Google Font + comment noting the substitution
+3. **Custom/proprietary fonts** → Find the closest Google Font match AND:
+   - Add a CSS comment: `/* Original: Lausanne → Substituted: Inter */`
+   - Log to the user: "Font substitution: [original] → [substitute]. The original
+     font is proprietary and cannot be loaded from Google Fonts."
+   - If the substitute has different metrics (x-height, letter-spacing), adjust
+     `letter-spacing` and `line-height` to compensate. Note adjustments in CSS.
+4. **Font weight coverage** — verify the Google Font import includes ALL weights
+   found in the extraction (e.g., 400, 500, 600, 700). Missing weights cause
+   the browser to synthesize bold, which looks wrong.
 
 ### Step 4.7: Build Interactions
 
@@ -601,6 +666,11 @@ Priority order:
    form variant is built. Click through everything.
 3. **VISUAL:** Font sizes, weights, colors, spacing match extraction data.
    Check at least 10 values per page against the extraction JSON.
+4. **SCROLL STATE:** For every page with tables or horizontally scrollable content:
+   - Scroll the table right → verify sticky columns have opaque backgrounds
+   - Scroll the page down → verify fixed/sticky headers remain visible
+   - If sticky columns are transparent (content shows through), add explicit
+     `background-color` from the extraction data and re-verify.
 
 For each page, identify and fix discrepancies in priority order. Fix functional
 issues first (broken interactions are worse than wrong spacing). Then completeness.
