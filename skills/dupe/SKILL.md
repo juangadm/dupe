@@ -23,20 +23,23 @@ work from screenshots. You ALWAYS extract from the live DOM.
 These produce terrifying multi-line permission prompts that users cannot evaluate.
 They are banned entirely — no exceptions.
 
-Instead:
-- **To read extraction results** → use the `Read` tool on the file path
-- **To write the extraction cache** → use the `Write` tool with the JSON string
-- **To parse JSON** → do it in your reasoning, not in a shell pipeline
-- **To combine extraction data** → compose the JSON object in your response, then
-  `Write` it to `/tmp/dupe-extraction-{domain}.json`
+**Common violations and their fixes:**
 
-The only acceptable Bash commands are:
+| BAD (banned) | GOOD (required) |
+|---|---|
+| `node -e "const d = require('/tmp/dupe-extraction-airbnb.json'); console.log(d.svgs)"` | Use `Read` tool on `/tmp/dupe-extraction-airbnb.json`, find the SVG in your reasoning |
+| `cat snapshot.txt \| python3 -c "import json; ..."` | Use `Read` tool on the file |
+| `node -e "fs.writeFileSync('/tmp/cache.json', ...)"` | Use `Write` tool with the JSON content |
+| `python3 -c "import json; json.dump(...)"` | Compose JSON in your response, use `Write` tool |
+
+**The only acceptable Bash commands are:**
 - `npx serve -l [port]` (serve the clone)
 - `ls`, `mkdir`, `cp` (file management)
 - `git` commands (if committing)
 
-If you catch yourself writing `python3`, `node -e`, `cat ... | python3`, or
-`jq` in a Bash command — STOP. You're doing it wrong. Use Read/Write tools.
+**That's it.** No `node`, no `python3`, no `jq`, no `cat | pipe`. If you need to
+read a file, use Read. If you need to write a file, use Write. If you need to find
+something in a JSON file, use Read and reason about the contents yourself.
 
 ---
 
