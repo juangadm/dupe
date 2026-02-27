@@ -43,6 +43,37 @@ something in a JSON file, use Read and reason about the contents yourself.
 
 ---
 
+## ZERO TOLERANCE RULES
+
+These rules are the most violated. They appear here because they MUST be in the
+agent's attention at all times. Violations result in fabricated output.
+
+1. **EXTRACT ALL PAGES BEFORE ANY BUILDING.** Do NOT write a single line of HTML
+   until every page in the checklist has extraction data on disk. Verify by READING
+   the extraction JSON and counting pages. If count < checklist, STOP.
+
+2. **EVERY CSS VALUE MUST COME FROM READING THE FILE.** Before writing any CSS
+   property, Read the extraction JSON, find the value, print it, then write it.
+   Never write a value from memory. If the JSON doesn't have it, extract it.
+
+3. **SVGs ARE COPY-PASTE, NOT GENERATED.** For each icon, Read the extraction JSON,
+   find the svgIcons entry, copy the FULL outerHTML string, paste into HTML. If you
+   write ANY `<path>` data that doesn't appear character-for-character in the extraction
+   JSON, you have fabricated an icon. Delete it and paste the real one.
+
+4. **USE EXTRACTED IMAGE URLs.** If the extraction JSON has an image src URL (CDN,
+   asset server, etc.), use it as-is in an `<img>` tag. NEVER create colored circles,
+   initials, or placeholder divs when a real URL exists in the extraction.
+
+5. **HOVER STATES ARE MANDATORY.** Extract minimum 5 hover states per page. After
+   extraction, Read the JSON and count hover entries. Print the count. If < 5, STOP
+   and extract more.
+
+6. **AUDIT AFTER EVERY CSS FILE.** After writing each CSS file, Read the extraction
+   JSON and compare 10 values in a printed table. Any mismatch = fix before proceeding.
+
+---
+
 ## Prerequisites Check
 
 Before ANY phase, verify Playwright MCP tools are available:
@@ -83,10 +114,8 @@ static replicas feel dead. The only question is how many pages.
 - Page 3 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
 ```
 
-Print this checklist to the user. Reference it after EVERY phase. Do NOT move
-to Phase 4 (Build) until ALL pages show "extracted". This is the single most
-important rule in the entire skill — without it, you will get lost in the
-extraction of page 1 and never reach page 2.
+Print this checklist to the user. Reference it after EVERY phase.
+See Zero Tolerance Rule #1 and Step 2.6 Extraction Gate.
 
 ### Interaction Depth Matrix
 
@@ -217,7 +246,9 @@ in 5-10 layers of `<div>` with generated class names. A deep recursive
 empty `textContent` on the actual content elements. The TreeWalker approach
 bypasses this entirely by finding text nodes directly.
 
-### CRITICAL: Multi-page extraction order
+### Multi-page extraction order
+
+See Zero Tolerance Rule #1 and Step 2.6 Extraction Gate.
 
 For multi-page scope:
 
@@ -225,10 +256,7 @@ For multi-page scope:
 2. Extract page-specific content for the CURRENT page
 3. Navigate to the NEXT page in the checklist
 4. Repeat step 2 for each page
-5. Only after ALL pages are extracted → move to Phase 4
-
-**Check the page checklist after each page extraction.** If any page shows
-"not extracted", you are NOT done with Phase 2.
+5. Only after ALL pages are extracted → proceed to Step 2.6 Extraction Gate
 
 ### Step 2.0: Load Extraction Scripts
 
@@ -450,18 +478,26 @@ In Phase 4, file/folder structure MUST mirror these paths. Use `index.html` insi
 directories to produce clean URLs. All nav `href` values must match the real URL
 paths — not simplified file names like `expenses.html`.
 
-### Step 2.6: CHECKPOINT — Review the Page Checklist
+### Step 2.6: EXTRACTION GATE (MANDATORY ACTION)
 
-Print the page checklist. Mark the current page as "extracted". If there are
-unextracted pages remaining:
+This is NOT a checklist you mark mentally. You must PERFORM these actions:
 
-1. Navigate Playwright to the next page URL
-2. Wait for load + lazy content
-3. Re-run Steps 2.1–2.3 for the NEW page's content (skip shared layout)
-4. Cache the new extraction data
-5. Return to this checkpoint
+1. **Read** the extraction JSON file: `/tmp/dupe-extraction-{domain}.json`
+2. **Count** the pages with data. Print this EXACT format:
+   ```
+   EXTRACTION GATE:
+   - Checklist pages: [list all pages from Phase 0]
+   - Pages with extraction data: [list pages found in JSON]
+   - Missing pages: [list any pages NOT in JSON]
+   - Hover states per page: [count for each page]
+   - SVG icons extracted: [count]
+   - Total extraction size: [file size]
+   ```
+3. **If ANY page is missing**: Navigate to it and extract. Return to this gate.
+4. **If hover states < 5 for ANY page**: Go back and extract hover states.
+5. **Only proceed when**: missing pages = 0 AND hover states >= 5 per page.
 
-**Do NOT proceed to Phase 4 until every page in the checklist is extracted.**
+Do NOT skip this gate. Do NOT approximate the counts. READ THE FILE.
 
 ---
 
@@ -526,33 +562,51 @@ If ANY row shows incomplete status, go back and extract it. Do NOT proceed to Ph
 
 ## Phase 4 — Build
 
-### HARD CHECKPOINT
+### HARD CHECKPOINT (ACTION REQUIRED)
 
-Before writing a single line of code, verify:
+Before writing a single line of code:
 
-> "I have extraction data AND interaction data for ALL pages in my checklist:
-> - Shared layout: ✓ structure ✓ interactions
-> - Page 1: ✓ structure ✓ interactions
-> - Page 2: ✓ structure ✓ interactions
-> - Page 3: ✓ structure ✓ interactions
->
-> Proceeding to build."
+1. **Read** `/tmp/dupe-extraction-{domain}.json`
+2. **Verify** it contains data for EVERY page in the checklist
+3. **Print** the page list with data sizes:
+   ```
+   BUILD GATE:
+   - overview: 45KB extraction data ✓
+   - expenses: 38KB extraction data ✓
+   - travel: 52KB extraction data ✓
+   ```
+4. **If ANY page shows 0KB or is missing**: STOP. Go back to Phase 2.
+5. **Read the extraction validation checklist** from Step 2.4. Confirm all items pass.
 
-If any page is missing, go back to Phase 2. Do NOT build partial clones.
+Proceeding to build.
 
-### Step 4.1: Extraction-Build Reconciliation
+### Step 4.1: Read-Print-Write Protocol (REPLACES "reconciliation")
 
-Before writing ANY code, reconcile extraction data against the build plan:
+You will build each component by reading its values from the extraction JSON,
+printing them, then writing CSS with those exact values. This is the protocol
+for EVERY component (sidebar, header, content area, cards, buttons, tables):
 
-For EACH page to build:
-1. Read the extraction JSON file
-2. For each interactive element in `contentInventory`:
-   - Is there extraction data for it? (If no → go back to Phase 2)
-   - Does the build plan include it? (If no → add it)
-3. For each CSS value you plan to use:
-   - Can you trace it back to the extraction JSON? (If no → extract it first)
-4. NEVER build a value from memory or approximation.
-   If you don't have the number, you don't write the CSS.
+**For each component:**
+
+1. **READ**: Open `/tmp/dupe-extraction-{domain}.json` with the Read tool
+2. **FIND**: Locate the component in the JSON (e.g., sidebar object, button array)
+3. **PRINT**: Print the key values in a table:
+   ```
+   BUILDING: [component name]
+   | Property        | Extraction Value          |
+   |-----------------|---------------------------|
+   | background      | rgb(244, 243, 239)        |
+   | border-right    | 1px solid rgb(219,218,201)|
+   | width           | 240px                     |
+   | font-size       | 14px                      |
+   | ...             | ...                       |
+   ```
+4. **WRITE**: Write CSS using EXACTLY the printed values. No rounding. No "looks right."
+5. **If a value isn't in the JSON**: STOP. Go back to the live site and extract it.
+   Never invent a CSS value.
+
+This protocol prevents the systematic font-size downshift pattern (20px→16px,
+16px→14px, 14px→12px) caused by writing from memory instead of from the file.
 
 ### Step 4.1.5: Detect Target Framework
 
@@ -683,14 +737,34 @@ Non-negotiable:
   hide/show, search bar collapse, filter bar sticky transitions. Use the
   extracted scroll thresholds, transforms, and class changes.
 
-### Step 4.5: Handle Images
+### Step 4.5: Build Images (PROCEDURAL — follow exactly)
 
-- Use original CDN URLs for images
-- If CORS-blocked: colored placeholder `div` with matching dimensions
-- Inline SVGs: use `outerHTML` from svgIcons (each unique SVG stored once,
-  use `instances` array to know where to place them)
-- File-referenced SVGs (if `svgFile` key exists): Read the .svg file and inline
-- NEVER substitute icon libraries for extracted SVGs
+1. **Read** the extraction JSON
+2. **Find** the `images` array
+3. **For each image placement in HTML:**
+   a. Match it to an extraction entry by alt text, context, or position
+   b. Use the EXACT `src` URL from the extraction
+   c. Set `width` and `height` from the extraction `rect.w` and `rect.h`
+   d. Write: `<img src="[extracted URL]" alt="[extracted alt]" width="[w]" height="[h]">`
+4. **If the URL is from a CDN** (e.g., demo-logos.ramp.com, cdn.example.com):
+   embed it directly. CDN URLs are public and will load.
+5. **If CORS-blocked** (image fails to load when served): use a colored placeholder
+   `<div>` with matching dimensions and background-color from surrounding context.
+6. **NEVER** create colored circles with initials (e.g., "BB" for Best Buy)
+   when the extraction has a real image URL.
+
+### Step 4.5.1: Build SVG Icons (PROCEDURAL — follow exactly)
+
+1. **Read** the extraction JSON → find `svgIcons` array
+2. **For each icon placement in HTML:**
+   a. Identify which icon is needed (by matching parentText or instance context)
+   b. Find the matching entry in `svgIcons` by parentText or content hash
+   c. **Copy the FULL `outerHTML` string** from the JSON entry
+   d. **Paste it directly** into the HTML — do not modify paths, viewBox, or attributes
+3. **Use the `instances` array** to know where each unique SVG appears multiple times
+4. **POST-CHECK**: After building all icons, count `<svg>` elements in your HTML.
+   Compare to the `svgIcons` array length + `instances` count. If you have SVGs
+   that don't match any extraction entry, you fabricated them. Delete and re-paste.
 
 ### Step 4.6: Handle Fonts
 
@@ -750,6 +824,36 @@ document.querySelectorAll('.sidebar-nav a').forEach(link => {
 
 NEVER build an interactive element as a dead `<div>` or `<button>` without a handler.
 If a tab exists, it MUST switch. If a dropdown exists, it MUST open/close.
+
+### Step 4.8: Post-Build Value Audit (MANDATORY)
+
+After all CSS files are written, perform a value audit for each page:
+
+1. **Read** the extraction JSON
+2. **Read** the built CSS file(s) for the page
+3. **Print a 10-row comparison table** covering the most critical values:
+
+   ```
+   VALUE AUDIT — [page name]
+   | Element           | Property    | Extracted          | Built              | Match |
+   |-------------------|-------------|--------------------|--------------------|-------|
+   | Sidebar           | background  | rgb(244,243,239)   | rgb(244,243,239)   | ✓     |
+   | Sidebar           | border      | 1px solid rgb(...) | 1px solid rgb(...) | ✓     |
+   | Main heading      | font-size   | 28px               | 28px               | ✓     |
+   | Section heading   | font-size   | 20px               | 20px               | ✓     |
+   | Expense row title | font-size   | 16px               | 16px               | ✓     |
+   | Right sidebar     | width       | 338px              | 338px              | ✓     |
+   | CTA button        | height      | 40px               | 40px               | ✓     |
+   | Nav item          | font-size   | 14px               | 14px               | ✓     |
+   | Badge             | border-rad  | 781px              | 781px              | ✓     |
+   | Icon size         | width/h     | 12x12              | 12x12              | ✓     |
+   ```
+
+4. **If ANY row shows ✗**: Fix the CSS value immediately. Re-print the table to confirm.
+5. **Also audit SVGs**: Count SVG elements in HTML vs svgIcons in extraction.
+6. **Also audit images**: Count `<img>` with real src URLs vs images in extraction.
+
+Proceed to Phase 5 ONLY when all audits pass.
 
 ---
 
