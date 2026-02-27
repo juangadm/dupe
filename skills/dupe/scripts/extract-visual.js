@@ -37,7 +37,7 @@ if (sidebarEl) {
         borderRadius: cs.borderRadius, gap: cs.gap,
         display: cs.display, alignItems: cs.alignItems
       },
-      svg: svg ? svg.outerHTML.slice(0, 5000) : undefined,
+      svg: svg ? svg.outerHTML : undefined,
       isActive: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
                 cs.fontWeight === '600' || cs.fontWeight === '700'
     });
@@ -107,23 +107,38 @@ var images = Array.from(document.querySelectorAll('img'))
     };
   });
 
-// --- 5. SVG Icons ---
-var svgIcons = Array.from(document.querySelectorAll('svg'))
+// --- 5. SVG Icons (deduplicated) ---
+var svgMap = {};
+var svgOrder = [];
+Array.from(document.querySelectorAll('svg'))
   .filter(function(el) {
     var r = el.getBoundingClientRect();
     return r.width > 0 && r.height > 0;
   })
-  .map(function(el) {
+  .forEach(function(el, idx) {
+    var html = el.outerHTML;
     var r = el.getBoundingClientRect();
     var parent = el.closest('a, button, [role="button"], li, div');
-    return {
-      outerHTML: el.outerHTML.slice(0, 5000),
+    // Cheap content hash: length + first 200 chars
+    var hash = html.length + '|' + html.slice(0, 200);
+    if (!svgMap[hash]) {
+      svgMap[hash] = {
+        outerHTML: html,
+        viewBox: el.getAttribute('viewBox'),
+        instances: []
+      };
+      svgOrder.push(hash);
+    }
+    svgMap[hash].instances.push({
+      idx: idx,
       rect: { x: Math.round(r.x), y: Math.round(r.y),
               w: Math.round(r.width), h: Math.round(r.height) },
       parentSelector: parent ? (parent.className || parent.tagName) : 'unknown',
       parentText: parent ? parent.textContent.trim().slice(0, 50) : ''
-    };
+    });
   });
+
+var svgIcons = svgOrder.map(function(hash) { return svgMap[hash]; });
 
 // --- 6. Progress Bars & Meters ---
 var progressBars = Array.from(document.querySelectorAll(
@@ -181,7 +196,7 @@ var statusIndicators = Array.from(document.querySelectorAll(
       padding: cs.padding, display: cs.display,
       gap: cs.gap, alignItems: cs.alignItems
     },
-    svg: el.querySelector('svg') ? el.querySelector('svg').outerHTML.slice(0, 5000) : undefined,
+    svg: el.querySelector('svg') ? el.querySelector('svg').outerHTML : undefined,
     pseudoBefore: before.content !== 'none' ? {
       content: before.content,
       backgroundColor: before.backgroundColor,
@@ -228,7 +243,7 @@ var typography = {
   colorPalette: Array.from(colors.entries()).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 20).map(function(entry) { return { color: entry[0], count: entry[1] }; })
 };
 
-// --- Size Guard ---
+// --- Size Guard (50KB limit, SVG overflow fallback) ---
 var result = {
   sidebar: sidebar, buttons: buttons, tables: tables,
   images: images, svgIcons: svgIcons,
@@ -236,20 +251,39 @@ var result = {
   typography: typography
 };
 var serialized = JSON.stringify(result);
-if (serialized.length > 20000) {
-  if (result.svgIcons.length > 30) {
-    result.svgIcons = result.svgIcons.slice(0, 30);
-    result._svgsTruncated = true;
-  }
+if (serialized.length > 50000) {
+  // Phase 1: Trim non-SVG arrays
   if (result.images.length > 20) {
     result.images = result.images.slice(0, 20);
     result._imagesTruncated = true;
   }
   serialized = JSON.stringify(result);
-  if (serialized.length > 20000) {
-    result.typography.typeScale = result.typography.typeScale.slice(0, 8);
-    result.typography.colorPalette = result.typography.colorPalette.slice(0, 10);
-    result._typographyTruncated = true;
+}
+if (serialized.length > 50000) {
+  // Phase 2: Strip outerHTML from large SVGs, keep metadata
+  var overflowIndices = [];
+  result.svgIcons = result.svgIcons.map(function(icon, i) {
+    if (icon.outerHTML && icon.outerHTML.length > 2000) {
+      overflowIndices.push(i);
+      return {
+        _overflow: true,
+        _charCount: icon.outerHTML.length,
+        viewBox: icon.viewBox,
+        instances: icon.instances
+      };
+    }
+    return icon;
+  });
+  if (overflowIndices.length > 0) {
+    result._svgOverflow = true;
+    result._svgOverflowIndices = overflowIndices;
   }
+  serialized = JSON.stringify(result);
+}
+if (serialized.length > 50000) {
+  // Phase 3: Last resort — trim typography
+  result.typography.typeScale = result.typography.typeScale.slice(0, 8);
+  result.typography.colorPalette = result.typography.colorPalette.slice(0, 10);
+  result._typographyTruncated = true;
 }
 return result;
