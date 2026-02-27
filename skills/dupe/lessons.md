@@ -1,4 +1,4 @@
-# Lessons Learned — Ramp Clone Failure (2026-02-26)
+# Lessons Learned — Clone Failures (Ramp, Airbnb)
 
 ## Lesson 1: Static HTML is never acceptable for interactive sites
 
@@ -255,3 +255,55 @@ repeats dozens of times. Instead of capping outerHTML at a fixed char limit
 unique SVG once with full fidelity. This keeps the payload small without
 losing data. The size guard strips large SVG markup only as a last resort,
 with a fallback batch script to retrieve them separately.
+
+## Lesson 37: Single-shot scrollTo misses progressive-load content
+
+`window.scrollTo(0, document.body.scrollHeight)` fires once and reaches the
+initial bottom — but on pages like Airbnb, new content loads as you scroll,
+which increases `scrollHeight`. A single shot never triggers that lazy loading.
+The fix: scroll incrementally by `window.innerHeight`, wait 1.5s for content
+to load, check if `scrollHeight` changed, repeat until stable. This is the
+root cause of missing swimlanes (2 of 9), missing footer, and missing
+category bar on the Airbnb clone — the extraction only captured 29% of text
+nodes because 71% of the page was never scrolled into view.
+
+**SKILL.md change:** Phase 1.3 now uses `extract-scroll-to-bottom.js` instead
+of single-shot `scrollTo`. Falls back to single-shot if the script isn't found.
+
+## Lesson 38: Scroll-driven UI needs dedicated extraction
+
+Headers that hide on scroll-down, search bars that collapse into compact pills,
+category bars that become sticky — these behaviors are driven by JavaScript
+scroll listeners and IntersectionObserver, not static CSS. `getComputedStyle()`
+on a page at `scrollY=0` captures the resting state but completely misses the
+transitions. The fix: after loading the full page, scroll back up and scroll
+down slowly, capturing element state at each position. Diff the snapshots to
+find which elements change and at what scroll threshold.
+
+**SKILL.md change:** New Step 2.2.2 uses `extract-scroll.js` to capture scroll
+behaviors. New build rules tell the build agent to implement these behaviors.
+
+## Lesson 39: Never fabricate navigation controls
+
+The Airbnb clone had "See all" links and "7 of 9 items showing" counters that
+don't exist on the real site. The build agent invented them to make carousels
+feel complete. But fabricated navigation is the clearest tell that a clone is
+fake — it's UI that the user KNOWS isn't real because they use the real product.
+If the extraction doesn't have it, don't build it. A carousel with just arrows
+is better than one with fake navigation.
+
+**SKILL.md change:** New build rule "NEVER fabricate navigation UI" added to
+Step 4.4. Explicit ban on "See all", counters, and pagination unless extracted.
+
+## Lesson 40: Extract CSS custom properties from :root
+
+Sites like Airbnb define their design system as CSS custom properties on `:root`
+(e.g., `--color-primary`, `--font-sans`, `--spacing-unit`). Without extracting
+these, the build agent invents semantic variable names from the color palette,
+which often don't match the site's actual design tokens. The fix: read
+`document.styleSheets` for `:root` rules and extract all `--` prefixed properties.
+This gives the build agent the exact variable names and values the site uses.
+
+**SKILL.md change:** `extract-visual.js` now includes a `cssCustomProperties`
+section. New build rule tells the build agent to use these as the foundation
+for `variables.css`.
