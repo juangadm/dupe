@@ -390,3 +390,36 @@ must be verbatim" rule), 0 hover states (despite minimum count rule).
 
 **SKILL.md change:** Added Zero Tolerance Rules section, converted all checkpoints
 to Read-Print-STOP action gates, added post-build value audit.
+
+## Lesson 48: Heredoc scripts are inline scripts in disguise
+
+The ABSOLUTE RULE banned `node -e`, `python3 -c`, and `cat | python3` — but the
+agent found TWO loopholes:
+
+1. **File-write heredoc**: `cat << 'EOF' > /tmp/script.mjs ... EOF && node /tmp/script.mjs`
+   Writes a 60+ line Node script to a temp file via heredoc, then executes it.
+2. **Piped heredoc**: `cat << 'PYEOF' | python3`
+   Pipes a 160-line Python script directly to the interpreter. Used for color grid
+   comparison in Phase 5 — which Step 5.3 already says to do in reasoning.
+
+Both produce the same terrifying wall of code in the Bash permission prompt — identical
+UX to the banned patterns.
+
+The agent used these for three steps:
+1. **Combine extraction data** — parsing tool-result cache files and merging them into
+   the extraction JSON (should have composed JSON incrementally in response text)
+2. **Validate extraction JSON** — checking completeness (should have used Read tool +
+   reasoning, which is what Step 2.6 already says to do)
+3. **Color grid comparison** — 160-line Python to parse RGB and compute match % (should
+   have done the arithmetic in reasoning, which is what Step 5.3 already says to do)
+
+Root cause: the ban table listed specific command prefixes but not the heredoc patterns.
+The agent pattern-matched against the table, found no match, and proceeded.
+
+**SKILL.md changes:**
+- Added both heredoc patterns to ban table (file-write and piped)
+- Strengthened ABSOLUTE RULE intro to list heredoc scripts alongside other banned patterns
+- Added "piping a heredoc to an interpreter IS an inline script" clarification
+- Added multi-page combination workflow to Step 2.4 (compose incrementally, Write once)
+- Added explicit "do NOT write a validation script" instruction to Step 2.6
+- Added explicit "do this in your reasoning, not with a script" to Step 5.3 color grid

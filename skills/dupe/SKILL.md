@@ -19,9 +19,9 @@ work from screenshots. You ALWAYS extract from the live DOM.
 
 ## ABSOLUTE RULE: No Inline Scripts via Bash
 
-**NEVER use `python3 -c`, `node -e`, `cat | python3`, or any inline script in Bash.**
+**NEVER use `python3 -c`, `node -e`, `cat | python3`, heredoc scripts (`cat << 'EOF' > /tmp/script.mjs`, `cat << 'EOF' | python3`), or any inline script in Bash.**
 These produce terrifying multi-line permission prompts that users cannot evaluate.
-They are banned entirely — no exceptions.
+They are banned entirely — no exceptions. Writing a script to a temp file and running it IS an inline script. Piping a heredoc to an interpreter IS an inline script.
 
 **Common violations and their fixes:**
 
@@ -31,6 +31,8 @@ They are banned entirely — no exceptions.
 | `cat snapshot.txt \| python3 -c "import json; ..."` | Use `Read` tool on the file |
 | `node -e "fs.writeFileSync('/tmp/cache.json', ...)"` | Use `Write` tool with the JSON content |
 | `python3 -c "import json; json.dump(...)"` | Compose JSON in your response, use `Write` tool |
+| `cat << 'EOF' > /tmp/script.mjs ... EOF && node /tmp/script.mjs` | Compose the result in your response, use `Write` tool. Heredoc scripts are inline scripts in disguise. |
+| `cat << 'PYEOF' \| python3` (piped heredoc — 160-line color grid comparison) | Do the comparison in your reasoning. Parse RGB values, count matches, compute %. You are an LLM — you can do arithmetic. |
 
 **The only acceptable Bash commands are:**
 - `npx serve -l [port]` (serve the clone)
@@ -426,9 +428,19 @@ Write ALL extraction data to `/tmp/dupe-extraction-{domain}.json` using the
 in your response text, then pass it to the Write tool. The Write tool creates
 the file silently with a clean one-line permission prompt.
 
-**NEVER use `node -e`, `python3 -c`, or any inline script to write or parse
-extraction data.** These produce terrifying multi-line Bash permission prompts.
-See "ABSOLUTE RULE: No Inline Scripts via Bash" at the top of this file.
+**Multi-page combination workflow:**
+After each `browser_evaluate` call, the extraction result is already in your context.
+Build the combined JSON incrementally — add each page's data to your running object
+as you extract it. When all pages are done, compose the final JSON and use the Write
+tool once. **Do NOT:**
+- Write a Node/Python script to combine results (banned — see ABSOLUTE RULE)
+- Write a heredoc script to parse tool-result files (banned — same rule)
+- Read `.claude/*/tool-results/*` files — those are internal Claude Code artifacts
+
+**NEVER use `node -e`, `python3 -c`, heredoc scripts, or any inline script to
+write, parse, or combine extraction data.** These produce terrifying multi-line
+Bash permission prompts. See "ABSOLUTE RULE: No Inline Scripts via Bash" at the
+top of this file.
 
 Include: URL, viewport, timestamp, structure map, all targeted extractions,
 all TreeWalker scans, typography, colors, images.
@@ -498,6 +510,12 @@ This is NOT a checklist you mark mentally. You must PERFORM these actions:
 5. **Only proceed when**: missing pages = 0 AND hover states >= 5 per page.
 
 Do NOT skip this gate. Do NOT approximate the counts. READ THE FILE.
+
+**How to validate:** Use the `Read` tool on the JSON file, then reason about
+completeness in your response. Print the gate format above from what you read.
+Do NOT write a validation script (Node, Python, or heredoc). The Read tool +
+your reasoning IS the validation. Any script you write to "automate" this gate
+is a banned inline script in disguise.
 
 ---
 
@@ -937,7 +955,8 @@ For EACH page:
 **Color Grid Match %:**
 For each cell in the 16×12 grid, parse the RGB values from both grids. Two cells match
 if each RGB channel differs by ≤30 (out of 255). Count matches / 192 total cells = match %.
-Apply threshold from table.
+Apply threshold from table. **Do this comparison in your reasoning** — do NOT write a
+Python/Node script to compute the match. You can parse RGB strings and do arithmetic.
 
 **Landmark Position Diff:**
 For each landmark in `originalVisual.landmarks`, find the matching landmark in
