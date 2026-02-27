@@ -246,3 +246,12 @@ Resizing Playwright to 1920×1080 clips content on laptops with smaller screens.
 right side of the page moves off-screen, and extraction misses those elements. Use
 whatever viewport the browser opens with — getBoundingClientRect() captures exact
 values regardless of viewport size.
+
+## Lesson 36: Deduplicate SVGs instead of capping outerHTML
+
+Most pages have 30-50 SVG elements but only 8-12 unique SVGs. The same icon
+repeats dozens of times. Instead of capping outerHTML at a fixed char limit
+(which truncates large logos), deduplicate by content hash and store each
+unique SVG once with full fidelity. This keeps the payload small without
+losing data. The size guard strips large SVG markup only as a last resort,
+with a fallback batch script to retrieve them separately.
