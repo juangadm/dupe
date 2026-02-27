@@ -149,17 +149,26 @@ Pause and ask:
 
 Wait for user confirmation. Do NOT skip this even if the page appears public.
 
-### Step 1.3: Trigger Lazy Loading
+### Step 1.3: Trigger Lazy Loading (Incremental Scroll)
 
-After user confirms, scroll the full page to trigger lazy-loaded content:
+After user confirms, load lazy content using incremental scrolling. Single-shot
+`scrollTo(0, body.scrollHeight)` fails on progressive-load pages (e.g., Airbnb)
+where the page height grows as new sections load. The single shot reaches the
+initial bottom but misses all content that loads afterwards.
 
+1. **Glob** for `**/scripts/extract-scroll-to-bottom.js`
+2. **Read** the script
+3. **Execute** via `browser_evaluate` — the script scrolls by viewport height
+   increments, waits 1.5s for new content, checks if `scrollHeight` changed,
+   and repeats until stable (max 20 iterations). Returns to top when done.
+
+The script returns `{ iterations, initialHeight, finalHeight, stable, grew }`.
+Log the result: "Scroll: {iterations} iterations, {initialHeight}px → {finalHeight}px"
+
+If the script is not found, fall back to the legacy single-shot pattern:
 ```js
 window.scrollTo(0, document.body.scrollHeight);
-```
-
-Wait 2 seconds, then scroll back to top:
-
-```js
+// wait 2 seconds
 window.scrollTo(0, 0);
 ```
 
@@ -229,6 +238,7 @@ Find and read the pre-built extraction scripts:
 2. **Read** both files into memory — these are the scripts you'll pass to `browser_evaluate`
 3. Also Glob for `**/scripts/extract-hover.js` — you'll need this for hover states later
 4. Also Glob for `**/scripts/extract-svg-batch.js` — fallback for pages with SVG overflow
+5. Also Glob for `**/scripts/extract-scroll.js` — scroll behavior extraction (header hide/show, compact search bars)
 
 **If Glob returns no results** (scripts missing from plugin cache):
 1. Glob for `**/extraction-reference.md`
@@ -280,7 +290,7 @@ Execute `extract-visual.js` as ONE `browser_evaluate` call:
 browser_evaluate → [contents of extract-visual.js]
 ```
 
-This single call returns `{ sidebar, buttons, tables, images, svgIcons, progressBars, statusIndicators, typography }`:
+This single call returns `{ sidebar, buttons, tables, images, svgIcons, progressBars, statusIndicators, typography, cssCustomProperties }`:
 
 - **sidebar** — containerStyles (width, backgroundColor, border, padding, position,
   overflow, display, flexDirection, gap, zIndex, boxShadow) + nav items with rect,
@@ -304,6 +314,11 @@ This single call returns `{ sidebar, buttons, tables, images, svgIcons, progress
   data (content, backgroundColor, dimensions, borderRadius)
 - **typography** — fontFamilies, typeScale (top 15 by size), colorPalette (top 20
   by frequency)
+- **cssCustomProperties** — all CSS custom properties from `:root` rules in
+  stylesheets (e.g., `--color-primary: #222`, `--font-sans: "Inter"`, etc.).
+  These are the design tokens the site actually uses. Use them as ground truth
+  when building `variables.css` — map extracted `--var-name` values directly
+  instead of inventing semantic names from the color palette.
 
 **After the two static calls, you MUST also:**
 1. Click each tab → extract the revealed panel content
@@ -324,6 +339,29 @@ If `extract-visual.js` returned `_svgOverflow: true`:
    `{ "svgFile": "/tmp/dupe-svgs-airbnb/3-logo.svg", ... }`
 
 If `_svgOverflow` is not set (most pages), skip this step entirely.
+
+### Step 2.2.2: Scroll Behavior Extraction
+
+Detect scroll-driven UI: headers that hide/show on scroll, search bars that
+collapse into compact pills, filter bars that become sticky. Static
+`getComputedStyle()` captures the resting state but misses JS-driven scroll
+handlers (IntersectionObserver, scroll listeners, `transform: translateY(-100%)`).
+
+1. Ensure the page is scrolled to top (`window.scrollTo(0, 0)`)
+2. Read `extract-scroll.js` (loaded in Step 2.0)
+3. Execute via `browser_evaluate`
+4. The script scrolls in 200px increments up to 3000px, capturing element
+   state (classes, transform, opacity, height, position, boxShadow) at each
+   scroll position
+5. Returns `{ candidateCount, snapshotCount, scrollBehaviors }` — each behavior
+   includes the element's initial state and an array of changes with scroll thresholds
+
+Include the scroll behavior data in the extraction JSON under a `scrollBehaviors` key.
+If `scrollBehaviors` is empty (no scroll-driven UI detected), note it and proceed.
+
+**When to skip:** If the page is a simple dashboard (no hero header, no search bar,
+no filter bar above the fold), this step adds no value. Skip if the structure
+extraction shows no sticky/fixed elements in the top 300px of the page.
 
 ### Step 2.3: Hover State Extraction (MANDATORY — NOT OPTIONAL)
 
@@ -388,6 +426,9 @@ pixel value in the build must trace back to a number in this JSON file.
 - [ ] Font families extracted — if proprietary, note the substitution plan
 - [ ] SVGs are deduplicated (check svgIcons array — should have fewer entries than total SVG count)
 - [ ] If _svgOverflow was set, overflow SVGs are saved to /tmp/dupe-svgs-{domain}/
+- [ ] CSS custom properties extracted (check cssCustomProperties in extraction JSON)
+- [ ] Scroll behaviors extracted for pages with sticky/fixed headers or search bars
+- [ ] Image rendered dimensions captured via rect (w, h) — not null
 
 If ANY check fails: go back and extract the missing data. Do NOT proceed to Phase 4.
 
@@ -620,6 +661,27 @@ Non-negotiable:
 - **Form field placeholders must be verbatim.** If the extraction shows
   `placeholder: "Search airports"`, use exactly that string. Do not paraphrase
   to "Enter departure city" or any other approximation.
+- **NEVER fabricate navigation UI.** No "See all" links, no "X of Y items showing"
+  counters, no pagination buttons unless they appear in the extraction JSON. If
+  the extraction has carousel arrows, use the extracted arrow styling — don't
+  invent your own. Fabricated navigation is the clearest sign a clone is fake.
+- **Use exact image dimensions from extraction rect.** Every image in the
+  extraction has a `rect` with `w` and `h` from `getBoundingClientRect()`. Use
+  these exact values for `width` and `height` in CSS. Never invent card sizes
+  like `182×173px` — use the extracted dimensions.
+- **Search bar and hero dimensions must come from extraction.** Never hardcode
+  `min-width: 700px` or `height: 64px` for search bars. Read the actual
+  `getBoundingClientRect()` values from the extraction JSON. If the extraction
+  has CSS custom properties for search dimensions (e.g., `--compact-search-width`),
+  use those.
+- **Use extracted CSS custom properties for design tokens.** If the extraction
+  JSON has a `cssCustomProperties` object, use those variable names and values
+  as the foundation for `variables.css`. These are the site's actual design
+  tokens — don't reinvent them from the color palette.
+- **Build scroll behaviors from extraction data.** If `scrollBehaviors` data
+  exists in the extraction JSON, implement the scroll-driven UI: header
+  hide/show, search bar collapse, filter bar sticky transitions. Use the
+  extracted scroll thresholds, transforms, and class changes.
 
 ### Step 4.5: Handle Images
 
