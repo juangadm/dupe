@@ -374,3 +374,19 @@ already knows how to load and run these scripts from Phase 2 experience.
 
 **SKILL.md change:** Step 5.0 loads verify scripts the same way Step 2.0 loads
 extraction scripts.
+
+## Lesson 47: Prose rules get ignored — action gates don't
+
+The Ramp clone test (Feb 2025) violated 6 different SKILL.md rules, all of which
+existed as prose instructions. The agent skipped them when context filled up. The
+fix: every critical rule must be an ACTION (Read file → print result → STOP if wrong),
+not prose ("remember to check"). Action gates force the agent to perform a verifiable
+step that produces output — you can see whether it was done. Prose rules produce no
+evidence of compliance.
+
+Specific failures: only 1/3 pages extracted (despite 4 prose rules), 0 SVGs used
+verbatim (despite 3 prose rules), systematic font-size downshift (despite "values
+must be verbatim" rule), 0 hover states (despite minimum count rule).
+
+**SKILL.md change:** Added Zero Tolerance Rules section, converted all checkpoints
+to Read-Print-STOP action gates, added post-build value audit.
