@@ -17,6 +17,29 @@ work from screenshots. You ALWAYS extract from the live DOM.
 
 ---
 
+## ABSOLUTE RULE: No Inline Scripts via Bash
+
+**NEVER use `python3 -c`, `node -e`, `cat | python3`, or any inline script in Bash.**
+These produce terrifying multi-line permission prompts that users cannot evaluate.
+They are banned entirely — no exceptions.
+
+Instead:
+- **To read extraction results** → use the `Read` tool on the file path
+- **To write the extraction cache** → use the `Write` tool with the JSON string
+- **To parse JSON** → do it in your reasoning, not in a shell pipeline
+- **To combine extraction data** → compose the JSON object in your response, then
+  `Write` it to `/tmp/dupe-extraction-{domain}.json`
+
+The only acceptable Bash commands are:
+- `npx serve -l [port]` (serve the clone)
+- `ls`, `mkdir`, `cp` (file management)
+- `git` commands (if committing)
+
+If you catch yourself writing `python3`, `node -e`, `cat ... | python3`, or
+`jq` in a Bash command — STOP. You're doing it wrong. Use Read/Write tools.
+
+---
+
 ## Prerequisites Check
 
 Before ANY phase, verify Playwright MCP tools are available:
@@ -101,12 +124,16 @@ to see all pages before you know what's shared.
 
 ### Step 1.1: Open the URL
 
-Navigate Playwright to `$ARGUMENTS` (the URL the user provided) at **1920×1080** viewport:
+Navigate Playwright to `$ARGUMENTS` (the URL the user provided):
 
 ```
 browser_navigate → $ARGUMENTS
-browser_resize → 1920×1080
 ```
+
+**Do NOT resize the viewport.** Use whatever size the browser opens at. Resizing
+to 1920×1080 clips content on smaller screens and moves elements off-screen during
+extraction. The extraction captures exact `getBoundingClientRect()` values regardless
+of viewport size.
 
 Take a screenshot for reference. This screenshot orients YOU — do NOT build from it.
 
@@ -308,9 +335,13 @@ Print: "Hover states extracted: X elements." If X < 5, go back.
 ### Step 2.4: Cache Extraction Results
 
 Write ALL extraction data to `/tmp/dupe-extraction-{domain}.json` using the
-**Write tool** (NOT Bash, NOT Python). The Write tool creates the file silently
-with a clean one-line permission prompt. Never generate inline Python or shell
-scripts to write JSON — it creates a terrible user experience.
+**Write tool** (NOT Bash, NOT Python, NOT Node). Compose the full JSON object
+in your response text, then pass it to the Write tool. The Write tool creates
+the file silently with a clean one-line permission prompt.
+
+**NEVER use `node -e`, `python3 -c`, or any inline script to write or parse
+extraction data.** These produce terrifying multi-line Bash permission prompts.
+See "ABSOLUTE RULE: No Inline Scripts via Bash" at the top of this file.
 
 Include: URL, viewport, timestamp, structure map, all targeted extractions,
 all TreeWalker scans, typography, colors, images.
