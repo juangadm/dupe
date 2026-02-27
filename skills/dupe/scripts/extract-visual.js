@@ -37,7 +37,7 @@ if (sidebarEl) {
         borderRadius: cs.borderRadius, gap: cs.gap,
         display: cs.display, alignItems: cs.alignItems
       },
-      svg: svg ? svg.outerHTML.slice(0, 1500) : undefined,
+      svg: svg ? svg.outerHTML.slice(0, 5000) : undefined,
       isActive: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
                 cs.fontWeight === '600' || cs.fontWeight === '700'
     });
@@ -117,7 +117,7 @@ var svgIcons = Array.from(document.querySelectorAll('svg'))
     var r = el.getBoundingClientRect();
     var parent = el.closest('a, button, [role="button"], li, div');
     return {
-      outerHTML: el.outerHTML.slice(0, 2000),
+      outerHTML: el.outerHTML.slice(0, 5000),
       rect: { x: Math.round(r.x), y: Math.round(r.y),
               w: Math.round(r.width), h: Math.round(r.height) },
       parentSelector: parent ? (parent.className || parent.tagName) : 'unknown',
@@ -181,7 +181,7 @@ var statusIndicators = Array.from(document.querySelectorAll(
       padding: cs.padding, display: cs.display,
       gap: cs.gap, alignItems: cs.alignItems
     },
-    svg: el.querySelector('svg') ? el.querySelector('svg').outerHTML.slice(0, 1500) : undefined,
+    svg: el.querySelector('svg') ? el.querySelector('svg').outerHTML.slice(0, 5000) : undefined,
     pseudoBefore: before.content !== 'none' ? {
       content: before.content,
       backgroundColor: before.backgroundColor,
