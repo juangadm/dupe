@@ -189,3 +189,45 @@ End-to-end wall clock time from `/dupe <url>` to verified clone is a core qualit
 metric. Fewer tool calls = less latency. Fewer permission prompts = less user
 friction. Pre-built scripts should reduce both. Track this per site in
 `tests/{site}/metrics.json` alongside tool call counts and extraction JSON size.
+
+## Lesson 27: Sidebar container styles need dedicated extraction
+
+Sidebar items (nav links) were extracted but the container (border-right, background-color,
+padding, width) was not. The build agent had item styles but no container frame — so it
+guessed the border. Add container styles to extract-visual.js sidebar section.
+
+## Lesson 28: Per-section background colors must be in the structure map
+
+extract-structure.js captured layout properties but no colors. The build agent used a single
+background for the whole page instead of the real off-white main / white cards pattern.
+Add backgroundColor to the structure extraction return object.
+
+## Lesson 29: Progress bars need dedicated extraction like tables
+
+Budget bars, loading indicators, and progress meters aren't covered by any generic query.
+Without a specific extraction step, they're invisible to the build. Add a progress bar
+section to extract-visual.js.
+
+## Lesson 30: Status indicators may use CSS pseudo-elements, not SVGs
+
+Policy status dots on Ramp are `::before` pseudo-elements with background-color, not SVG
+icons. The SVG extractor finds nothing. Add a status indicator section that checks both
+the element and its ::before pseudo-element.
+
+## Lesson 31: extract-visual.js MUST have a size guard
+
+extract-structure.js had a 20KB size guard. extract-visual.js did not. It returned 69K
+chars on the Ramp test, exceeding tool output limits. Every extraction script must have
+a size guard that progressively trims the largest arrays.
+
+## Lesson 32: Hover extraction must be mandatory with a minimum count
+
+SKILL.md said "extract hover states" but didn't enforce a minimum. Claude skipped it
+entirely on all 3 pages. Enforcement requires: a checklist of element categories, a
+minimum count (5+ per page), and a verification print statement.
+
+## Lesson 33: Dropdown options must be extracted, never fabricated
+
+The travel page showed "Multi-city" as a radio option that doesn't exist on the real site.
+Claude fabricated it because the interaction extraction never clicked the radio group.
+Add explicit rules: never fabricate options, and if not extracted, build in closed state.
