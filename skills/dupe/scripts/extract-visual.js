@@ -1,5 +1,5 @@
 // extract-visual.js — Consolidates sidebar, buttons, tables, images, SVGs, typography
-// Returns: { sidebar, buttons, tables, images, svgIcons, typography }
+// Returns: { sidebar, buttons, tables, images, svgIcons, typography, cssCustomProperties }
 // NOTE: No IIFE wrapper — Playwright MCP wraps this in () => { ... } automatically
 
 // --- 1. Sidebar / Navigation Items ---
@@ -206,7 +206,51 @@ var statusIndicators = Array.from(document.querySelectorAll(
   };
 });
 
-// --- 8. Typography + Color Palette ---
+// --- 8. CSS Custom Properties from :root ---
+var cssCustomProperties = {};
+try {
+  var sheets = document.styleSheets;
+  for (var s = 0; s < sheets.length; s++) {
+    try {
+      var rules = sheets[s].cssRules || sheets[s].rules;
+      if (!rules) continue;
+      for (var r = 0; r < rules.length; r++) {
+        var rule = rules[r];
+        if (rule.selectorText === ':root' || rule.selectorText === ':root, :host') {
+          var style = rule.style;
+          for (var p = 0; p < style.length; p++) {
+            var prop = style[p];
+            if (prop.startsWith('--')) {
+              cssCustomProperties[prop] = style.getPropertyValue(prop).trim();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Cross-origin stylesheet — skip silently
+    }
+  }
+} catch (e) {
+  // styleSheets access failed — skip
+}
+
+// Also read computed custom properties from documentElement (catches JS-set vars)
+var rootStyle = getComputedStyle(document.documentElement);
+var rootCandidates = ['--color-primary', '--color-secondary', '--color-accent',
+  '--color-background', '--color-surface', '--color-text', '--color-border',
+  '--font-family', '--font-size', '--spacing', '--radius', '--shadow'];
+rootCandidates.forEach(function(prefix) {
+  // Check common naming patterns: exact match and numbered variants
+  for (var i = 0; i <= 9; i++) {
+    var varName = i === 0 ? prefix : prefix + '-' + i;
+    var val = rootStyle.getPropertyValue(varName).trim();
+    if (val && !cssCustomProperties[varName]) {
+      cssCustomProperties[varName] = val;
+    }
+  }
+});
+
+// --- 9. Typography + Color Palette ---
 var fonts = new Set();
 var typeScale = [];
 var seen = new Set();
@@ -248,7 +292,8 @@ var result = {
   sidebar: sidebar, buttons: buttons, tables: tables,
   images: images, svgIcons: svgIcons,
   progressBars: progressBars, statusIndicators: statusIndicators,
-  typography: typography
+  typography: typography,
+  cssCustomProperties: cssCustomProperties
 };
 var serialized = JSON.stringify(result);
 if (serialized.length > 50000) {
