@@ -228,6 +228,7 @@ Find and read the pre-built extraction scripts:
 1. **Glob** for `**/scripts/extract-structure.js` and `**/scripts/extract-visual.js`
 2. **Read** both files into memory — these are the scripts you'll pass to `browser_evaluate`
 3. Also Glob for `**/scripts/extract-hover.js` — you'll need this for hover states later
+4. Also Glob for `**/scripts/extract-svg-batch.js` — fallback for pages with SVG overflow
 
 **If Glob returns no results** (scripts missing from plugin cache):
 1. Glob for `**/extraction-reference.md`
@@ -291,8 +292,11 @@ This single call returns `{ sidebar, buttons, tables, images, svgIcons, progress
   (text, backgroundColor, padding, fontSize, fontWeight, position, left, right,
   zIndex, width, borderBottom), sample `<td>` cells with same properties
 - **images** — all `<img>` >5px with src, alt, rect, borderRadius
-- **svgIcons** — all `<svg>` with outerHTML (capped at 2000 chars), rect,
-  parentSelector, parentText. NEVER substitute icon libraries for extracted SVGs.
+- **svgIcons** — deduplicated: each unique SVG stored once with full outerHTML
+  (no cap) plus an `instances` array showing every location (rect, parentSelector,
+  parentText). If total payload exceeds 50KB, large SVGs are stripped and
+  `_svgOverflow: true` is set — run `extract-svg-batch.js` to retrieve them.
+  NEVER substitute icon libraries for extracted SVGs.
 - **progressBars** — progress/meter/budget bar elements with value, max, styles
   (backgroundColor, borderRadius, height, width), parent styles, nearby text
 - **statusIndicators** — badges, chips, dots, tags with text, styles (colors,
@@ -306,6 +310,20 @@ This single call returns `{ sidebar, buttons, tables, images, svgIcons, progress
 2. Scroll each table to its rightmost column → extract ALL column headers and widths
 3. Open each dropdown → extract all options
 4. For forms that change per tab: extract form fields for EACH tab state
+
+### Step 2.2.1: Retrieve Overflow SVGs (only if needed)
+
+If `extract-visual.js` returned `_svgOverflow: true`:
+
+1. Read `extract-svg-batch.js`
+2. Replace `INDICES_PLACEHOLDER` with the `_svgOverflowIndices` array
+3. Execute via `browser_evaluate`
+4. Write each returned SVG to `/tmp/dupe-svgs-{domain}/{index}-{context}.svg`
+   using the Write tool
+5. In the extraction JSON, update overflow entries with file paths:
+   `{ "svgFile": "/tmp/dupe-svgs-airbnb/3-logo.svg", ... }`
+
+If `_svgOverflow` is not set (most pages), skip this step entirely.
 
 ### Step 2.3: Hover State Extraction (MANDATORY — NOT OPTIONAL)
 
@@ -368,6 +386,8 @@ pixel value in the build must trace back to a number in this JSON file.
 - [ ] Status indicators (badges, dots, chips) are captured with their colors
 - [ ] Hover states extracted for minimum 5 elements per page
 - [ ] Font families extracted — if proprietary, note the substitution plan
+- [ ] SVGs are deduplicated (check svgIcons array — should have fewer entries than total SVG count)
+- [ ] If _svgOverflow was set, overflow SVGs are saved to /tmp/dupe-svgs-{domain}/
 
 If ANY check fails: go back and extract the missing data. Do NOT proceed to Phase 4.
 
@@ -605,7 +625,10 @@ Non-negotiable:
 
 - Use original CDN URLs for images
 - If CORS-blocked: colored placeholder `div` with matching dimensions
-- Inline SVGs from extraction data (not icon fonts)
+- Inline SVGs: use `outerHTML` from svgIcons (each unique SVG stored once,
+  use `instances` array to know where to place them)
+- File-referenced SVGs (if `svgFile` key exists): Read the .svg file and inline
+- NEVER substitute icon libraries for extracted SVGs
 
 ### Step 4.6: Handle Fonts
 
