@@ -22,6 +22,11 @@ function extractStructure(el, depth) {
     margin: cs.margin, padding: cs.padding,
     gap: cs.gap, rowGap: cs.rowGap, columnGap: cs.columnGap,
     transition: cs.transition !== 'all 0s ease 0s' ? cs.transition : undefined,
+    backgroundColor: cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ? cs.backgroundColor : undefined,
+    borderRight: cs.borderRight !== 'none' && cs.borderRight !== '0px none rgb(0, 0, 0)' ? cs.borderRight : undefined,
+    borderBottom: cs.borderBottom !== 'none' && cs.borderBottom !== '0px none rgb(0, 0, 0)' ? cs.borderBottom : undefined,
+    zIndex: cs.zIndex !== 'auto' ? cs.zIndex : undefined,
+    boxShadow: cs.boxShadow !== 'none' ? cs.boxShadow : undefined,
     childCount: el.children.length,
     children: Array.from(el.children).map(function(c) { return extractStructure(c, depth + 1); }).filter(Boolean)
   };
