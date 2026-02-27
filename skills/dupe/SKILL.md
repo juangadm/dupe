@@ -755,7 +755,37 @@ If a tab exists, it MUST switch. If a dropdown exists, it MUST open/close.
 
 ## Phase 5 — Verification
 
-Verification is NOT optional. Check EVERY page in the checklist.
+Verification is NOT optional. Every page in the checklist gets quantitative verification
+using the `verify-*.js` scripts. These scripts produce metrics — not subjective "looks
+close enough" judgments.
+
+### Acceptance Thresholds
+
+| Metric | Pass | Warn | Fail |
+|--------|------|------|------|
+| Grid color match % | >85% | 70–85% | <70% |
+| Heading count diff | 0 | 1–2 | >2 |
+| Interactive element diff | ≤2 | 3–5 | >5 |
+| Landmark position diff | <10px | 10–25px | >25px |
+
+WARN means: document the gap, proceed if explainable (e.g., font substitution shifts
+layout by 3px). FAIL means: fix before marking verified.
+
+### Step 5.0: Load Verification Scripts
+
+Use Glob to find all `verify-*.js` scripts:
+```
+Glob: skills/dupe/scripts/verify-*.js
+```
+
+Read each script into memory. You will pass their contents to `browser_evaluate`.
+
+Scripts available:
+- `verify-structure.js` — element counts, headings, interactive inventory, text digest
+- `verify-visual.js` — 16×12 color grid, landmark positions, largest elements
+- `verify-annotate.js` — numbered red labels on interactive elements (for screenshots)
+- `verify-annotate-cleanup.js` — removes annotations (idempotent)
+- `verify-interactions.js` — testable interaction inventory with selectors + expected behavior
 
 ### Step 5.1: Serve the Clone
 
@@ -765,56 +795,151 @@ npx serve -l [unused-port]
 
 Check that the port is free first. Don't assume 8000 is available.
 
-### Step 5.2: Visual Comparison (per page)
+### Step 5.2: Structural Comparison (per page)
 
 For EACH page in the checklist:
 
-1. Navigate Playwright to the clone's page
-2. Take a screenshot at 1920×1080
-3. Navigate to the original URL for that page
-4. Take a screenshot at 1920×1080
-5. Compare visually
+1. Navigate Playwright to the **original** URL
+2. Run `verify-structure.js` via `browser_evaluate` → save result as `originalStructure`
+3. Run `browser_snapshot` on original → save for qualitative reference
+4. Navigate Playwright to the **clone** URL
+5. Run `verify-structure.js` via `browser_evaluate` → save result as `cloneStructure`
+6. Run `browser_snapshot` on clone → save for qualitative reference
 
-### Step 5.3: Systematic Verification (not spot-checking)
+**Diff the results:**
+- Compare `elementCounts` — flag any tag where `|original - clone| > 5`
+- Compare `headings` — check count AND text match (heading hierarchy must be identical)
+- Compare `interactiveInventory.length` — apply threshold from table
+- Compare `textDigest` — first 20 entries should match (exact text, same order)
+- Compare `ariaRoles` — every role in original should exist in clone
+- Compare `navStructure` — link text and count must match
+- Compare `forms` — field count and types must match
 
-Priority order:
+Print a structural diff summary showing PASS/WARN/FAIL for each metric.
 
-1. **FUNCTIONAL:** Every interactive element works (tabs switch, dropdowns open,
-   nav navigates, forms accept input). Test ALL of them, not just 2-3.
-2. **COMPLETENESS:** Every tab has content. Every table has all columns. Every
-   form variant is built. Click through everything.
-3. **VISUAL:** Font sizes, weights, colors, spacing match extraction data.
-   Check at least 10 values per page against the extraction JSON.
-4. **SCROLL STATE:** For every page with tables or horizontally scrollable content:
-   - Scroll the table right → verify sticky columns have opaque backgrounds
-   - Scroll the page down → verify fixed/sticky headers remain visible
-   - If sticky columns are transparent (content shows through), add explicit
-     `background-color` from the extraction data and re-verify.
+### Step 5.3: Visual Fingerprint Comparison (per page)
 
-For each page, identify and fix discrepancies in priority order. Fix functional
-issues first (broken interactions are worse than wrong spacing). Then completeness.
-Then visual fidelity. Fix, re-screenshot, compare. 2 rounds max per page.
+For EACH page:
 
-### Step 5.3.5: Test Interactions via Playwright
+1. Navigate Playwright to the **original** URL
+2. Run `verify-visual.js` via `browser_evaluate` → save as `originalVisual`
+3. Run `browser_take_screenshot` on original
+4. Navigate Playwright to the **clone** URL
+5. Run `verify-visual.js` via `browser_evaluate` → save as `cloneVisual`
+6. Run `browser_take_screenshot` on clone
 
-For each page, use `browser_click` to test every interactive element:
-- Tabs must switch (active class changes on click)
-- Dropdowns must open/close
-- Navigation links must navigate to the correct page
-- Form elements must be interactive
+**Compare the results:**
 
-If any interaction is dead, fix it before marking the page as verified.
+**Color Grid Match %:**
+For each cell in the 16×12 grid, parse the RGB values from both grids. Two cells match
+if each RGB channel differs by ≤30 (out of 255). Count matches / 192 total cells = match %.
+Apply threshold from table.
 
-### Step 5.4: Final Checklist
+**Landmark Position Diff:**
+For each landmark in `originalVisual.landmarks`, find the matching landmark in
+`cloneVisual.landmarks` by name. Compute `|original.x - clone.x|` and `|original.y - clone.y|`.
+Report the max diff across all landmarks. Apply threshold from table.
 
-Print the completed checklist:
+**Largest Elements:**
+Compare the top 5 elements by area — their tags and approximate sizes should match.
+This catches major layout shifts (e.g., sidebar missing, header doubled in height).
+
+Print a visual comparison summary with match % and landmark diffs.
+
+### Step 5.4: Annotated Screenshot Comparison (per page)
+
+For EACH page:
+
+1. Navigate Playwright to the **original** URL
+2. Run `verify-annotate.js` via `browser_evaluate` → save element map as `originalAnnotations`
+3. Run `browser_take_screenshot` → annotated screenshot of original
+4. Run `verify-annotate-cleanup.js` to remove labels
+5. Navigate Playwright to the **clone** URL
+6. Run `verify-annotate.js` via `browser_evaluate` → save element map as `cloneAnnotations`
+7. Run `browser_take_screenshot` → annotated screenshot of clone
+8. Run `verify-annotate-cleanup.js` to remove labels
+
+**Compare element maps:**
+- Match elements by `text` + `tag` combination
+- Report: matched count, missing in clone (in original but not clone), extra in clone
+- For matched elements, compare `rect` positions — flag any with >15px positional diff
+- Reference elements by number ("Element #7 in original is missing from clone")
+
+This gives you numbered screenshots where you can visually identify specific elements
+and reference them by number in the verification report.
+
+### Step 5.5: Interaction Testing (per page)
+
+For EACH page:
+
+1. Navigate Playwright to the **clone** URL
+2. Run `verify-interactions.js` via `browser_evaluate` → get interaction inventory
+3. For EACH testable interaction (prioritize tabs, dropdowns, accordions first):
+   a. Run `browser_snapshot` BEFORE click (capture pre-state)
+   b. Run `browser_click` on the element using its selector
+   c. Wait 500ms for animations/transitions
+   d. Run `browser_snapshot` AFTER click (capture post-state)
+   e. Evaluate: did the expected behavior occur?
+      - **tab:** Did a different panel become visible? Did aria-selected change?
+      - **dropdown:** Did new content appear? Did aria-expanded toggle?
+      - **accordion:** Did content expand/collapse?
+      - **input:** Did element receive focus?
+      - **checkbox/radio:** Did checked state toggle?
+   f. Record PASS or FAIL with details
+4. If an interaction FAILS, fix the JavaScript handler and re-test that specific element
+
+**Priority order for fixing:**
+1. Tabs that don't switch (worst — visible, expected behavior)
+2. Dropdowns that don't open (core interaction pattern)
+3. Navigation that doesn't navigate
+4. Form elements that don't accept input
+5. Buttons with no visible feedback
+
+Fix, re-test. 2 rounds max per page.
+
+### Step 5.6: Print Verification Report
+
+For EACH page, print a structured report:
+
+```
+## Verification Report — [page name]
+
+### Structural (Step 5.2)
+- Heading count: original=[N] clone=[N] → PASS/WARN/FAIL
+- Interactive elements: original=[N] clone=[N] → PASS/WARN/FAIL
+- Text digest match: [N]/20 first entries match → PASS/WARN/FAIL
+- Nav links: original=[N] clone=[N] → PASS/WARN/FAIL
+
+### Visual (Step 5.3)
+- Color grid match: [N]% → PASS/WARN/FAIL
+- Landmark diffs: header=[N]px, nav=[N]px, main=[N]px → PASS/WARN/FAIL
+- Top 5 elements by area: [matched]/5 → PASS/WARN/FAIL
+
+### Annotations (Step 5.4)
+- Elements: [matched] matched, [missing] missing, [extra] extra
+
+### Interactions (Step 5.5)
+- Tested: [N] interactions
+- Passed: [N] | Failed: [N]
+- Failed: [list element text + type for each failure]
+
+### Overall: PASS / WARN / FAIL
+```
+
+If ANY metric is FAIL after 2 fix rounds, flag it for user review but proceed.
+Don't block indefinitely on a single metric — document and move on.
+
+### Step 5.7: Final Checklist
+
+Print the completed checklist with verification scores:
 
 ```
 ## Dupe Page Checklist — COMPLETE
+
 - Shared layout: ✓ extracted  ✓ interactions  ✓ built
-- Page 1 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified
-- Page 2 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified
-- Page 3 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified
+- Page 1 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified (grid: [N]%, struct: PASS, interactions: [N]/[N])
+- Page 2 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified (grid: [N]%, struct: PASS, interactions: [N]/[N])
+- Page 3 [name]: ✓ extracted  ✓ interactions  ✓ built  ✓ verified (grid: [N]%, struct: PASS, interactions: [N]/[N])
 ```
 
 ---
