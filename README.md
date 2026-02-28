@@ -60,6 +60,12 @@ Dupe will:
 
 The output is a static site you can serve locally and modify freely.
 
+> **Tip:** Dupe makes 50+ tool calls per clone (Playwright navigation, DOM extraction, file writes). For a smooth experience, run with `--dangerously-skip-permissions` — all operations target public sites and writes go to `/tmp/`.
+>
+> ```
+> claude --dangerously-skip-permissions --plugin-dir juangadm/dupe
+> ```
+
 ## Example: Ramp Clone
 
 We tested Dupe against [try.ramp.com](https://try.ramp.com) — a complex multi-page app with a sidebar, data tables with sticky columns, tab switching, dropdown menus, and form variations.
