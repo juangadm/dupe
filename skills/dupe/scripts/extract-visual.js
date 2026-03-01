@@ -99,11 +99,19 @@ var images = Array.from(document.querySelectorAll('img'))
   })
   .map(function(el) {
     var rect = el.getBoundingClientRect();
+    var parent = el.parentElement;
+    var parentCs = parent ? getComputedStyle(parent) : null;
     return {
       src: el.src, alt: el.alt,
       rect: { x: Math.round(rect.x), y: Math.round(rect.y),
               w: Math.round(rect.width), h: Math.round(rect.height) },
-      borderRadius: getComputedStyle(el).borderRadius
+      borderRadius: getComputedStyle(el).borderRadius,
+      parentShape: (parentCs && (parentCs.overflow === 'hidden' || parentCs.borderRadius !== '0px')) ? {
+        borderRadius: parentCs.borderRadius,
+        overflow: parentCs.overflow,
+        width: parentCs.width,
+        height: parentCs.height
+      } : null
     };
   });
 
