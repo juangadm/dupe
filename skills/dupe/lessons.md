@@ -423,3 +423,37 @@ The agent pattern-matched against the table, found no match, and proceeded.
 - Added multi-page combination workflow to Step 2.4 (compose incrementally, Write once)
 - Added explicit "do NOT write a validation script" instruction to Step 2.6
 - Added explicit "do this in your reasoning, not with a script" to Step 5.3 color grid
+
+## Lesson 49: Context window exhaustion from monolithic pipeline
+
+A 3-page Ramp clone consumed 400-800K tokens total, but the context window is ~200K.
+The agent hit 0% context by Phase 2 of 5 — the build and verification phases never
+got a full context window.
+
+**Root cause:** NOT the SKILL.md size (52KB = ~13K tokens). It's the extraction data
+(283KB JSON for Ramp) being loaded into context repeatedly across phases, plus
+`browser_evaluate` results streaming in during extraction. Each phase reads the
+extraction JSON, adds its own output, and the cumulative weight exhausts context
+before build even starts.
+
+**Fix:** Split the pipeline into subagent phases. SKILL.md becomes a lean orchestrator
+(~200 lines) that runs Phases 0–1 inline, then delegates Phases 2–3, 4, and 5 to
+subagents via the Agent tool. Each subagent gets a fresh ~200K context window. Data
+flows between phases via disk files (`/tmp/dupe-scope-{domain}.md`,
+`/tmp/dupe-extraction-{domain}.json`, `/tmp/dupe-test-{domain}/`).
+
+**Architecture:**
+- Phase files live in `skills/dupe/phases/` (no frontmatter = not detected as skills)
+- `extract.md` — self-contained Phases 2–3 instructions
+- `build.md` — self-contained Phase 4 instructions
+- `verify.md` — self-contained Phase 5 instructions
+- Orchestrator constructs subagent prompts = variable header + phase file contents
+- Inter-phase gates run in main context (lightweight: `ls`, `wc`, Read first 50 lines)
+- Gates never read the full extraction JSON into main context
+
+**Key design decisions:**
+- Subagents run sequentially (not parallel) — browser state must be consistent
+- Each phase file includes the ABSOLUTE RULE (no inline scripts) since subagents
+  don't inherit the orchestrator's context
+- Each phase file includes ToolSearch hint for Playwright MCP tool discovery
+- Scripts path is resolved once in Phase 0 and stored in the scope file
