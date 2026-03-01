@@ -457,3 +457,28 @@ flows between phases via disk files (`/tmp/dupe-scope-{domain}.md`,
   don't inherit the orchestrator's context
 - Each phase file includes ToolSearch hint for Playwright MCP tool discovery
 - Scripts path is resolved once in Phase 0 and stored in the scope file
+
+## Lesson 50: Three structural gaps from Round 1 Ramp clone
+
+Round 1 found 12 issues. 7 were context exhaustion bugs (fixed by subagent split in
+Lesson 49). 3 required structural changes:
+
+1. **Parent container clipping missed on images.** `extract-visual.js` captured
+   `borderRadius` on `<img>` elements (always 0px for avatars) but missed the parent
+   container's `border-radius: 50%` and `overflow: hidden` that creates the circular
+   shape. Fix: added `parentShape` field to image extraction — captures parent's
+   borderRadius, overflow, width, height when parent clips the image. Build rule added
+   to wrap images in a clipping container `<div>` when parentShape is present.
+
+2. **Straddle-positioned elements had no build rule.** A button visually half-in,
+   half-out of a card (e.g., "Add to your Ramp" CTA that straddles the card boundary)
+   had no guidance. The build agent flattened it inside the card. Fix: added build rule
+   to detect when an element's rect extends beyond its parent and recreate the straddle
+   with `transform: translateY(50%)` or negative margin.
+
+3. **Padding values silently rounded to "standard" increments.** Extracted padding of
+   40px was built as 24px — the agent substituted a more "standard" value. Fix: added
+   explicit build rule that padding values are exact and never rounded. 40px ≠ 24px.
+
+**SKILL.md changes:** `extract-visual.js` parentShape field, `build.md` Step 4.4
+straddle + padding rules, `build.md` Step 4.5 parentShape wrapping rule.
