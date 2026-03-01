@@ -199,6 +199,13 @@ Non-negotiable:
 - **Search bar dimensions must come from extraction.** Never hardcode.
 - **Use extracted CSS custom properties for design tokens.**
 - **Build scroll behaviors from extraction data.** Use extracted thresholds.
+- **Detect straddle-positioned elements.** If an element's extracted rect extends
+  beyond its parent container's rect, it visually overlaps the boundary. Use
+  `transform: translateY(50%)` or negative margin to recreate the straddle. Set
+  `overflow: visible` on the parent. Never flatten a straddling element fully inside.
+- **Padding values are exact, never rounded to common increments.** If extraction
+  says 40px, write 40px. Never substitute 24px, 16px, or other "standard" values.
+  40px and 24px produce visibly different layouts.
 
 ## Step 4.5: Build Images (PROCEDURAL — follow exactly)
 
@@ -212,6 +219,10 @@ Non-negotiable:
 4. **If the URL is from a CDN**: embed directly. CDN URLs are public.
 5. **If CORS-blocked**: use a colored placeholder `<div>` with matching dimensions.
 6. **NEVER** create colored circles with initials when a real image URL exists.
+7. **If an image has `parentShape` data**: wrap the `<img>` in a container `<div>`
+   with the parent's `border-radius` and `overflow: hidden`. The image's own
+   borderRadius is often 0px — the visual shape comes from the clipping container.
+   Common: circular avatars where parent has `border-radius: 50%`.
 
 ## Step 4.5.1: Build SVG Icons (PROCEDURAL — follow exactly)
 
