@@ -128,6 +128,12 @@ Before writing a single line of code:
    ```
 4. **If ANY page shows 0KB or is missing**: STOP. Report the issue.
 5. **Read the extraction validation checklist** — confirm all items pass.
+6. **Verify SVG extraction data exists:**
+   - Check for `svgIcons` array in the extraction JSON
+   - If `svgIcons` is missing, empty, or contains only boolean flags (no `outerHTML` keys): STOP.
+     Report: "SVG extraction incomplete. The extraction JSON has no SVG outerHTML data.
+     Re-run extraction with extract-visual.js."
+   - Print: `SVG icons: [N] unique icons with outerHTML data`
 
 ---
 
@@ -388,6 +394,11 @@ Non-negotiable:
    Common: circular avatars where parent has `border-radius: 50%`.
 
 ## Step 4.5.1: Build SVG Icons (PROCEDURAL — follow exactly)
+
+0. **PRE-CHECK**: Read the extraction JSON `svgIcons` array. If it is missing, empty,
+   or entries lack `outerHTML` keys, STOP immediately. Report: "Cannot build SVGs —
+   extraction data missing. Do NOT fabricate icons." This check prevents the most
+   common fabrication failure.
 
 1. **Read** the extraction JSON → find `svgIcons` array
 2. **For each icon placement in HTML:**
