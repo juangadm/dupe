@@ -111,6 +111,14 @@ These rules are the most violated. Violations result in fabricated output.
 5. **AUDIT AFTER EVERY CSS FILE.** After writing each CSS file, Read the extraction
    JSON and compare 10 values in a printed table. Any mismatch = fix before proceeding.
 
+6. **MISSING DATA = VISIBLE PLACEHOLDER, NEVER FABRICATION.** If any extraction data
+   is absent — SVG outerHTML, image URL, text content, CSS value — insert a visible
+   placeholder: a 1px red-bordered box with white background and red text reading
+   "MISSING: [description]". Set the placeholder to the expected dimensions from the
+   extraction rect. NEVER fill gaps from training data. A visible gap is infinitely
+   better than a confident wrong answer. Fabricated icons (Lucide, Feather, Heroicons)
+   are the worst outcome — they look professional but are completely wrong.
+
 ---
 
 ## HARD CHECKPOINT (ACTION REQUIRED)
@@ -353,6 +361,10 @@ Non-negotiable:
 - **SVG icons must be extracted verbatim.** NEVER substitute icon libraries.
 - **NEVER fabricate dropdown options.** Build in closed state if not extracted.
 - **NEVER fabricate form field options.** Only build what's in the JSON.
+- **NEVER import icon libraries.** No lucide-react, no react-icons, no heroicons,
+  no feather-icons. Every SVG comes from the extraction JSON or it doesn't exist.
+  If you find yourself writing `import { Icon } from 'lucide-react'`, you are
+  fabricating. STOP.
 - **Form field placeholders must be verbatim.** Exact strings only.
 - **NEVER fabricate navigation UI.** No "See all" links, no counters, no pagination
   unless in the extraction JSON.
