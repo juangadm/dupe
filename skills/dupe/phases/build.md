@@ -427,47 +427,73 @@ Non-negotiable:
 
 ## Step 4.7: Build Interactions
 
-For every interaction from the extraction, write a JavaScript handler in `main.js`.
-Add `<script src="main.js"></script>` before `</body>` in every HTML file.
+All interactions live inside React components as state. NEVER create a `main.js`
+file. NEVER use `document.querySelector` or `document.addEventListener` in React
+components. All interactivity uses React hooks.
 
 **Tab switching pattern:**
-```js
-document.querySelectorAll('[data-tab-group]').forEach(group => {
-  const tabs = group.querySelectorAll('[data-tab]');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('tab--active', 'travel-tab--active'));
-      tab.classList.add(tab.classList.contains('travel-tab') ? 'travel-tab--active' : 'tab--active');
-      const panels = group.querySelectorAll('[data-panel]');
-      panels.forEach(p => p.hidden = p.dataset.panel !== tab.dataset.tab);
-    });
-  });
-});
+```tsx
+const [activeTab, setActiveTab] = useState('tab1')
+
+{/* Tab buttons */}
+<button
+  className={`tab ${activeTab === 'tab1' ? 'tab--active' : ''}`}
+  onClick={() => setActiveTab('tab1')}
+>
+  Tab 1
+</button>
+
+{/* Tab panels — use display:none, NOT conditional rendering */}
+<div className="tab-panel" style={{ display: activeTab === 'tab1' ? undefined : 'none' }}>
+  {/* Panel 1 content */}
+</div>
+<div className="tab-panel" style={{ display: activeTab === 'tab2' ? undefined : 'none' }}>
+  {/* Panel 2 content */}
+</div>
 ```
+
+**CRITICAL:** Use `style={{ display: 'none' }}` to hide inactive panels, NOT
+conditional rendering (`{activeTab === 'tab1' && <Panel />}`). Keeping all panels
+in the DOM preserves element counts for verification scripts.
 
 **Dropdown toggle pattern:**
-```js
-document.querySelectorAll('[data-dropdown-trigger]').forEach(trigger => {
-  const dropdown = trigger.querySelector('.dropdown-menu');
-  if (!dropdown) return;
-  trigger.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dropdown.classList.toggle('dropdown--open');
-  });
-  document.addEventListener('click', () => dropdown.classList.remove('dropdown--open'));
-});
+```tsx
+const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+
+useEffect(() => {
+  if (!openDropdown) return
+  const close = () => setOpenDropdown(null)
+  document.addEventListener('click', close)
+  return () => document.removeEventListener('click', close)
+}, [openDropdown])
+
+{/* Dropdown trigger */}
+<div
+  className={`dropdown ${openDropdown === 'filter' ? 'dropdown--open' : ''}`}
+  onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === 'filter' ? null : 'filter') }}
+>
+  <span>Filter</span>
+  <div className="dropdown-menu">
+    {/* Dropdown options */}
+  </div>
+</div>
 ```
 
-**Navigation active state:**
-```js
-const currentPage = window.location.pathname.split('/').pop() || 'overview.html';
-document.querySelectorAll('.sidebar-nav a').forEach(link => {
-  const href = link.getAttribute('href');
-  link.classList.toggle('nav-item--sub-active', href === currentPage);
-});
+**Navigation active state** — use React Router's `NavLink`:
+```tsx
+import { NavLink } from 'react-router-dom'
+
+<NavLink
+  to="/home"
+  className={({ isActive }) => `nav-item ${isActive ? 'nav-item--active' : ''}`}
+>
+  Overview
+</NavLink>
 ```
 
-NEVER build an interactive element as a dead `<div>` or `<button>` without a handler.
+NEVER build an interactive element as a dead `<div>` or `<button>` without a
+state handler. Every clickable element must have an `onClick` wired to a
+`useState` setter.
 
 ## Step 4.8: Post-Build Value Audit (MANDATORY)
 
@@ -494,8 +520,8 @@ After all CSS files are written, perform a value audit for each page:
    ```
 
 4. **If ANY row shows mismatch**: Fix the CSS value immediately. Re-print to confirm.
-5. **Also audit SVGs**: Count SVG elements in HTML vs svgIcons in extraction.
-6. **Also audit images**: Count `<img>` with real src URLs vs images in extraction.
+5. **Also audit SVGs**: Count SVG elements in TSX vs svgIcons in extraction.
+6. **Also audit images**: Count `<img />` with real src URLs vs images in extraction.
 
 ---
 
