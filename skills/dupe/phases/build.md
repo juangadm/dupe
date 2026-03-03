@@ -28,6 +28,10 @@ It contains:
 - Output directory path
 - Extraction JSON file path
 
+**Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
+- Verify `phases.extract.status == "complete"` — if not, STOP: "Extraction not complete. Cannot build."
+- After writing each file, update `phases.build.filesWritten` array with the file path
+
 Then **Read the extraction JSON file**. This is your single source of truth for
 every CSS value, every text string, every SVG icon, every image URL.
 

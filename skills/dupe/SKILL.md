@@ -82,6 +82,39 @@ For each page, define depth BEFORE extraction begins:
 **Content Depth:** "visible only", "scroll full page", "scroll table fully"
 **Interaction Depth:** Depth 0 (static), Depth 1 (click each), Depth 2 (all variants), Depth 3 (multi-step chains)
 
+### Initialize Progress File
+
+Write progress tracking to `/tmp/dupe-progress-{domain}.json`:
+
+```json
+{
+  "domain": "{domain}",
+  "url": "{url}",
+  "startedAt": "{ISO 8601 timestamp}",
+  "currentPhase": "scope",
+  "phases": {
+    "scope": { "status": "complete" },
+    "navigate": { "status": "pending" },
+    "extract": { "status": "pending", "pages": {} },
+    "build": { "status": "pending", "filesWritten": [] },
+    "verify": { "status": "pending" }
+  },
+  "gates": {
+    "gate1": { "passed": false },
+    "gate2": { "passed": false },
+    "gate3": { "passed": false },
+    "gate4": { "passed": false }
+  },
+  "retries": {
+    "extract": 0,
+    "build": 0,
+    "verify": 0
+  }
+}
+```
+
+Update `phases.scope.status = "complete"` immediately since scope is done.
+
 ### Resolve Scripts Path
 
 Find the absolute path to the extraction/verification scripts:
@@ -180,6 +213,11 @@ seconds and re-check. After 2 retries, proceed.
 Take a screenshot to confirm the page loaded correctly. If the page shows an error,
 auth wall, or CAPTCHA, handle it before proceeding.
 
+**Update progress file:**
+- Set `phases.navigate.status = "complete"`
+- Set `currentPhase = "extract"`
+- Set `gates.gate1.passed = true`
+
 ---
 
 ## Subagent 1: Extraction (Phases 2–3)
@@ -193,11 +231,13 @@ Delegate extraction to a subagent with a fresh context window.
 ```
 Domain: {domain}
 Scope file: /tmp/dupe-scope-{domain}.md
+Progress file: /tmp/dupe-progress-{domain}.json
 Scripts directory: {resolved_scripts_path}
 Extraction JSON: /tmp/dupe-extraction-{domain}.json
 Original URL: {url}
 
 Read the scope file first to understand pages, interaction depth, and file paths.
+Read the progress file to check which pages are already complete — skip them.
 Then follow the instructions below to extract all pages.
 
 ---
@@ -222,10 +262,15 @@ Lightweight checks — never read the full extraction JSON into main context.
 3. **Read** first 50 lines of the extraction JSON — top-level keys present?
    Check that the page count matches scope.
 
-**If validation fails:** Retry the extraction subagent once with error details
-appended to the prompt. If it fails again, STOP and report to user.
+**If validation fails:**
+- Update progress: `phases.extract.lastError = "[error details]"`, increment `retries.extract`
+- Read `retries.extract` from progress file — if >= 3, STOP and report to user
+- Otherwise retry the extraction subagent with error details appended to the prompt
 
-**If validation passes:** Print:
+**If validation passes:** Update progress file:
+- Set `phases.extract.status = "complete"`, `currentPhase = "build"`, `gates.gate2.passed = true`
+
+Print:
 ```
 GATE 2 PASSED:
 - Extraction file: /tmp/dupe-extraction-{domain}.json
@@ -246,12 +291,14 @@ Delegate the build to a subagent with a fresh context window.
 ```
 Domain: {domain}
 Scope file: /tmp/dupe-scope-{domain}.md
+Progress file: /tmp/dupe-progress-{domain}.json
 Scripts directory: {resolved_scripts_path}
 Extraction JSON: /tmp/dupe-extraction-{domain}.json
 Output directory: /tmp/dupe-test-{domain}/
 Original URL: {url}
 
 Read the scope file first to understand pages and file paths.
+Read the progress file to verify extraction is complete before building.
 Then read the extraction JSON and follow the instructions below to build the clone.
 
 ---
@@ -274,10 +321,15 @@ Wait for the subagent to complete.
 3. Check for CSS files — total CSS size > 5KB?
 4. Check for JS files — `main.js` exists and > 1KB?
 
-**If validation fails:** Retry the build subagent once with error details.
-If it fails again, STOP and report to user.
+**If validation fails:**
+- Update progress: `phases.build.lastError = "[error details]"`, increment `retries.build`
+- Read `retries.build` from progress file — if >= 3, STOP and report to user
+- Otherwise retry the build subagent with error details
 
-**If validation passes:** Print:
+**If validation passes:** Update progress file:
+- Set `phases.build.status = "complete"`, `currentPhase = "verify"`, `gates.gate3.passed = true`
+
+Print:
 ```
 GATE 3 PASSED:
 - Output directory: /tmp/dupe-test-{domain}/
@@ -299,12 +351,14 @@ Delegate verification to a subagent with a fresh context window.
 ```
 Domain: {domain}
 Scope file: /tmp/dupe-scope-{domain}.md
+Progress file: /tmp/dupe-progress-{domain}.json
 Scripts directory: {resolved_scripts_path}
 Extraction JSON: /tmp/dupe-extraction-{domain}.json
 Clone directory: /tmp/dupe-test-{domain}/
 Original URL: {url}
 
 Read the scope file first to understand pages and file paths.
+Read the progress file to verify extract and build phases are complete.
 Then follow the instructions below to verify the clone against the original.
 
 ---
@@ -321,6 +375,9 @@ Wait for the subagent to complete.
 ---
 
 ## GATE 4: Final Report
+
+**Update progress file:**
+- Set `phases.verify.status = "complete"`, `currentPhase = "done"`, `gates.gate4.passed = true`
 
 Read the subagent's output (the verification report). Print the final checklist
 to the user:
@@ -354,10 +411,10 @@ npx serve -l 8787 /tmp/dupe-test-{domain}/
 | Redirect to login | Invoke auth flow (Phase 1.2) |
 | Navigation timeout (>30s) | Retry once, then warn about bot blocking |
 | Anti-scraping challenge | Tell user to solve manually in browser |
-| Subagent returns incomplete output | Retry once with error details |
-| Gate validation fails twice | STOP and report to user |
+| Subagent returns incomplete output | Increment `retries` in progress file, retry with error details |
+| Gate validation fails | Read `retries` from progress file — if >= 3, STOP and report to user |
 | Port already in use | Try a different port |
-| 3 failed attempts at same step | STOP and ask user for guidance |
+| Any phase fails 3 times | `retries.{phase} >= 3` in progress file → STOP and ask user for guidance |
 
 ---
 

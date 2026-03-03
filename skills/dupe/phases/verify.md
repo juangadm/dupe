@@ -42,6 +42,9 @@ It contains:
 - Original site URL
 - Scripts directory path
 
+**Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
+- Verify `phases.extract.status == "complete"` AND `phases.build.status == "complete"` — if either is incomplete, STOP: "Prerequisites not complete. Cannot verify."
+
 ---
 
 ## Acceptance Thresholds

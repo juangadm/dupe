@@ -56,6 +56,11 @@ It contains:
 - Interaction depth matrix (per page)
 - Scripts directory path (absolute)
 
+**Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
+- Skip pages where `phases.extract.pages.{page}.structure == "complete"` AND `phases.extract.pages.{page}.visual == "complete"`
+- After extracting each page, update progress: `phases.extract.pages.{page}.structure = "complete"` (and `.visual = "complete"` after visual extraction)
+- This enables resume on failure — only unfinished pages are re-extracted
+
 ---
 
 ## Phase 2 — Extraction
