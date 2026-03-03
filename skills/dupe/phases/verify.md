@@ -31,19 +31,31 @@ reasoning. You are an LLM — you can do arithmetic.
 
 ---
 
-## Inputs
+## Startup Validation (MANDATORY — run before any verification)
 
-Before starting, **Read the scope file** (JSON) specified in your instructions header.
-It contains:
-- `domain` — domain name
-- `pages` — array of pages to verify (each with `name`, `urlPath`)
-- `outputDirectory` — clone directory path
-- `extractionJson` — path to extraction data
-- `url` — original site URL
-- `scriptsDirectory` — absolute path to verification scripts
+Before any work, perform these checks and print the result. If any check fails, STOP immediately.
 
-**Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
-- Verify `phases.extract.status == "complete"` AND `phases.build.status == "complete"` — if either is incomplete, STOP: "Prerequisites not complete. Cannot verify."
+1. **Read the scope file** (JSON) from your instructions header
+   - Verify it exists and is > 100 bytes
+   - Parse it — confirm `domain`, `pages`, `outputDirectory`, `extractionJson`, `url`, `scriptsDirectory` fields exist
+2. **Read the progress file** (`/tmp/dupe-progress-{domain}.json`)
+   - Verify `phases.extract.status == "complete"` AND `phases.build.status == "complete"` — if either is incomplete, STOP: "Prerequisites not complete. Cannot verify."
+3. **Check output directory** — verify it exists and contains HTML files
+4. **Print startup check:**
+
+```
+STARTUP CHECK:
+- Phase: verify
+- Progress: [currentPhase from progress file]
+- Scope file: [byte size] OK
+- Extraction JSON: [byte size] OK
+- Output directory: [file count] files OK
+- Pages to verify: [list page names]
+- Proceeding with: verify all pages
+```
+
+If scope file is missing or < 100 bytes → STOP: "Scope file missing or corrupt."
+If output directory is empty or has no HTML files → STOP: "Build output missing."
 
 ---
 

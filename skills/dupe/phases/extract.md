@@ -47,20 +47,31 @@ something in a JSON file, use Read and reason about the contents yourself.
 
 ---
 
-## Inputs
+## Startup Validation (MANDATORY — run before any extraction)
 
-Before starting, **Read the scope file** (JSON) specified in your instructions header.
-It contains:
-- `domain` — domain name
-- `pages` — array of pages to extract (each with `name`, `urlPath`, `interactionDepth`, `contentDepth`)
-- `scriptsDirectory` — absolute path to extraction scripts
-- `extractionJson` — output file path
-- `outputDirectory` — clone output path
+Before any work, perform these checks and print the result. If any check fails, STOP immediately.
 
-**Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
-- Skip pages where `phases.extract.pages.{page}.structure == "complete"` AND `phases.extract.pages.{page}.visual == "complete"`
-- After extracting each page, update progress: `phases.extract.pages.{page}.structure = "complete"` (and `.visual = "complete"` after visual extraction)
-- This enables resume on failure — only unfinished pages are re-extracted
+1. **Read the scope file** (JSON) from your instructions header
+   - Verify it exists and is > 100 bytes (a valid scope file is never tiny)
+   - Parse it — confirm `domain`, `pages`, `scriptsDirectory`, `extractionJson` fields exist
+2. **Read the progress file** (`/tmp/dupe-progress-{domain}.json`)
+   - Check `currentPhase` — should be `"extract"` or later
+   - Identify pages already complete: skip pages where `phases.extract.pages.{page}.structure == "complete"` AND `.visual == "complete"`
+3. **Print startup check:**
+
+```
+STARTUP CHECK:
+- Phase: extract
+- Progress: [currentPhase from progress file]
+- Scope file: [byte size] OK
+- Pages to extract: [list page names]
+- Pages already complete: [list or "none"]
+- Proceeding with: [list pages that still need extraction]
+```
+
+If scope file is missing or < 100 bytes → STOP: "Scope file missing or corrupt."
+
+After extracting each page, update progress: `phases.extract.pages.{page}.structure = "complete"` (and `.visual = "complete"` after visual extraction). This enables resume on failure.
 
 ---
 

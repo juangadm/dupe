@@ -19,19 +19,32 @@ They are banned entirely — no exceptions.
 
 ---
 
-## Inputs
+## Startup Validation (MANDATORY — run before any building)
 
-Before starting, **Read the scope file** (JSON) specified in your instructions header.
-It contains:
-- `domain` — domain name
-- `pages` — array of pages to build (each with `name`, `urlPath`)
-- `outputDirectory` — where to write HTML/CSS/JS files
-- `extractionJson` — path to the extraction data file
-- `scriptsDirectory` — absolute path to scripts
+Before any work, perform these checks and print the result. If any check fails, STOP immediately.
 
-**Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
-- Verify `phases.extract.status == "complete"` — if not, STOP: "Extraction not complete. Cannot build."
-- After writing each file, update `phases.build.filesWritten` array with the file path
+1. **Read the scope file** (JSON) from your instructions header
+   - Verify it exists and is > 100 bytes
+   - Parse it — confirm `domain`, `pages`, `outputDirectory`, `extractionJson` fields exist
+2. **Read the progress file** (`/tmp/dupe-progress-{domain}.json`)
+   - Verify `phases.extract.status == "complete"` — if not, STOP: "Extraction not complete. Cannot build."
+3. **Check extraction JSON** — verify it exists and is > 20KB (a real extraction is never smaller)
+4. **Print startup check:**
+
+```
+STARTUP CHECK:
+- Phase: build
+- Progress: [currentPhase from progress file]
+- Scope file: [byte size] OK
+- Extraction JSON: [byte size] OK
+- Pages to build: [list page names]
+- Proceeding with: build all pages
+```
+
+If scope file is missing or < 100 bytes → STOP: "Scope file missing or corrupt."
+If extraction JSON is missing or < 20KB → STOP: "Extraction data missing or incomplete."
+
+After writing each file, update `phases.build.filesWritten` array in the progress file.
 
 Then **Read the extraction JSON file**. This is your single source of truth for
 every CSS value, every text string, every SVG icon, every image URL.
