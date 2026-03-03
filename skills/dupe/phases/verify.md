@@ -23,8 +23,10 @@ If tools are not found, STOP and report: "Playwright MCP tools not available."
 ## ABSOLUTE RULE: No Inline Scripts via Bash
 
 **NEVER use `python3 -c`, `node -e`, `cat | python3`, heredoc scripts, or any
-inline script in Bash.** The only acceptable Bash commands are `npx serve -l [port]`,
-`ls`, `mkdir`, `cp`.
+inline script in Bash.** The only acceptable Bash commands are:
+- `npx vite --port [port]` (serve the clone via Vite dev server)
+- `npx serve -l [port]` (fallback for static assets)
+- `ls`, `mkdir`, `cp`
 
 If you need to compare RGB values or compute match percentages, do it in your
 reasoning. You are an LLM — you can do arithmetic.
@@ -40,7 +42,7 @@ Before any work, perform these checks and print the result. If any check fails, 
    - Parse it — confirm `domain`, `pages`, `outputDirectory`, `extractionJson`, `url`, `scriptsDirectory` fields exist
 2. **Read the progress file** (`/tmp/dupe-progress-{domain}.json`)
    - Verify `phases.extract.status == "complete"` AND `phases.build.status == "complete"` — if either is incomplete, STOP: "Prerequisites not complete. Cannot verify."
-3. **Check output directory** — verify it exists and contains HTML files
+3. **Check output directory** — verify it exists and contains `package.json` and `src/App.tsx`
 4. **Print startup check:**
 
 ```
@@ -55,7 +57,7 @@ STARTUP CHECK:
 ```
 
 If scope file is missing or < 100 bytes → STOP: "Scope file missing or corrupt."
-If output directory is empty or has no HTML files → STOP: "Build output missing."
+If output directory is missing `package.json` or `src/App.tsx` → STOP: "Build output missing or incomplete."
 
 ---
 
@@ -88,10 +90,12 @@ Read each script into memory. You will pass their contents to `browser_evaluate`
 ## Step 5.1: Serve the Clone
 
 ```bash
-npx serve -l [unused-port] [clone-directory]
+cd [clone-directory] && npx vite --port [unused-port]
 ```
 
 Check that the port is free first. Don't assume 8000 is available.
+Wait for Vite to print `Local: http://localhost:[port]/` before proceeding —
+the dev server needs a moment to compile on first start.
 
 ## Step 5.2: Structural Comparison (per page)
 
