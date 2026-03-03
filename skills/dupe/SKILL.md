@@ -33,17 +33,33 @@ running it IS an inline script. Piping a heredoc to an interpreter IS an inline 
 
 ---
 
-## Prerequisites Check
+## Preflight Check
 
-Before ANY phase, verify Playwright MCP tools are available:
+Before ANY phase, run all 6 checks. If any fails, STOP and report.
 
-1. Use `ToolSearch` to find: `browser_navigate`, `browser_evaluate`, `browser_snapshot`
-2. If ANY tool is missing, stop immediately and tell the user:
+1. **Playwright tools** — Use `ToolSearch` to find: `browser_navigate`, `browser_evaluate`, `browser_snapshot`. If ANY tool is missing:
+   > "Playwright MCP isn't connected. Run `npx @playwright/mcp@latest` to verify it works, then restart Claude Code with the plugin loaded."
 
-> "Playwright MCP isn't connected. Run `npx @playwright/mcp@latest` to verify
-> it works, then restart Claude Code with the plugin loaded."
+2. **Browser launch** — Run `browser_navigate` to `about:blank`. If this fails, the browser isn't starting — STOP and report the error.
 
-3. Do NOT proceed without Playwright. There is no graceful degradation.
+3. **Writable /tmp/** — Run `ls /tmp/` to verify the temp directory is accessible. If it fails, STOP: "/tmp/ is not writable."
+
+4. **Previous run check** — Check if `/tmp/dupe-progress-{domain}.json` already exists from a previous run. If it does, ask the user:
+   > "Found progress from a previous run ({currentPhase} phase, {N} retries). Continue from where it left off, or start fresh?"
+   - **Continue**: Read the progress file and resume from `currentPhase`
+   - **Start fresh**: Delete all `/tmp/dupe-*-{domain}.*` files and proceed normally
+
+5. **Scripts directory** — Glob for `**/scripts/extract-structure.js`. If not found, STOP: "Extraction scripts not found."
+
+6. **Print preflight summary:**
+```
+PREFLIGHT PASSED:
+- Playwright: OK (3 tools loaded)
+- Browser: OK (about:blank loaded)
+- /tmp/: OK (writable)
+- Previous run: [none | resuming from {phase} | starting fresh]
+- Scripts: OK ({path})
+```
 
 ---
 
