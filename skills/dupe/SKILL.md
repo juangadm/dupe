@@ -218,6 +218,10 @@ seconds and re-check. After 2 retries, proceed.
 Take a screenshot to confirm the page loaded correctly. If the page shows an error,
 auth wall, or CAPTCHA, handle it before proceeding.
 
+**Content check:** Run `browser_evaluate(() => document.title)` — verify the title
+is not blank, not "Error", not "404", and not a generic browser error page. A blank
+or error title means the page didn't load correctly.
+
 **Update progress file:**
 - Set `phases.navigate.status = "complete"`
 - Set `currentPhase = "extract"`
@@ -266,6 +270,9 @@ Lightweight checks — never read the full extraction JSON into main context.
 2. `wc -c < /tmp/dupe-extraction-{domain}.json` — size > 20KB?
 3. **Read** first 50 lines of the extraction JSON — top-level keys present?
    Check that the page count matches scope.
+4. **Content integrity:** For each page name in scope, verify it appears in the
+   first 50 lines of the JSON. Verify the first page has non-null `structure`
+   and `textNodes` keys — a file full of nulls passes size checks but is useless.
 
 **If validation fails:**
 - Update progress: `phases.extract.lastError = "[error details]"`, increment `retries.extract`
@@ -326,6 +333,9 @@ Wait for the subagent to complete.
 3. Check for CSS files — total CSS size > 5KB?
 4. Check for JS files — `main.js` exists and > 1KB?
 5. Run `git log --oneline` in the output directory — verify checkpoint commits exist
+6. **Content integrity:** Read the first 20 lines of each HTML file — verify
+   `<!DOCTYPE` or `<html` is present. A file that starts with something else
+   (e.g., raw JSON, error text) is not valid HTML output.
 
 **If validation fails:**
 - Update progress: `phases.build.lastError = "[error details]"`, increment `retries.build`
@@ -381,6 +391,11 @@ Wait for the subagent to complete.
 ---
 
 ## GATE 4: Final Report
+
+**Content integrity:** Verify the verification report contains a numeric
+`Color grid match: [N]%` value for each page. Reject subjective reports that
+say "looks close" or "generally matches" without quantitative metrics — the
+verify phase must produce numbers.
 
 **Update progress file:**
 - Set `phases.verify.status = "complete"`, `currentPhase = "done"`, `gates.gate4.passed = true`
