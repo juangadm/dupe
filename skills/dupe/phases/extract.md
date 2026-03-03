@@ -307,7 +307,15 @@ This is NOT a checklist you mark mentally. You must PERFORM these actions:
    ```
 3. **If ANY page is missing**: Navigate to it and extract. Return to this gate.
 4. **If hover states < 5 for ANY page**: Go back and extract hover states.
-5. **Only proceed when**: missing pages = 0 AND hover states >= 5 per page.
+5. **Only proceed when**: missing pages = 0 AND hover states >= 5 per page
+   AND svgIcons entries all have `outerHTML` (or confirmed `_overflow` with batch retrieval complete).
+6. **SVG integrity check:** For each entry in `svgIcons`, verify it has an `outerHTML`
+   key (not just metadata). If any entry has `_overflow: true` but `extract-svg-batch.js`
+   was not run, go back and retrieve overflow SVGs.
+7. **SVG minimum for interactive sites:** If the page has buttons, nav items, or
+   interactive elements in `contentInventory` but `svgIcons` count is 0, the visual
+   extraction likely failed. Re-run `extract-visual.js` for the affected page.
+   Print: "WARNING: 0 SVG icons but [N] interactive elements detected — re-extracting."
 
 Do NOT skip this gate. Do NOT approximate the counts. READ THE FILE.
 
