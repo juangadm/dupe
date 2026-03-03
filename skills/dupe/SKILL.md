@@ -277,6 +277,12 @@ Lightweight checks — never read the full extraction JSON into main context.
 4. **Content integrity:** For each page name in scope, verify it appears in the
    first 50 lines of the JSON. Verify the first page has non-null `structure`
    and `textNodes` keys — a file full of nulls passes size checks but is useless.
+5. **Asset arrays:** Read lines containing `svgIcons` and `images` in the extraction
+   JSON. Verify both keys exist. If the site has visible UI (not a text-only page),
+   `svgIcons` should have > 0 entries. If `svgIcons` is empty or missing, WARN:
+   "No SVG icons extracted — visual fidelity will be degraded. Consider re-running extraction."
+6. **Size sanity:** If scope has multiple pages and extraction JSON is < 50KB, WARN:
+   "Extraction is unusually small for a multi-page site. Verify svgIcons and images arrays."
 
 **If validation fails:**
 - Update progress: `phases.extract.lastError = "[error details]"`, increment `retries.extract`
@@ -292,6 +298,8 @@ GATE 2 PASSED:
 - Extraction file: /tmp/dupe-extraction-{domain}.json
 - File size: [N]KB
 - Pages found: [list]
+- SVG icons: [N] unique
+- Images: [N]
 ```
 
 ---
