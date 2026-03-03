@@ -309,11 +309,12 @@ Wait for the subagent to complete.
 2. Count HTML files — matches page count from scope?
 3. Check for CSS files — total CSS size > 5KB?
 4. Check for JS files — `main.js` exists and > 1KB?
+5. Run `git log --oneline` in the output directory — verify checkpoint commits exist
 
 **If validation fails:**
 - Update progress: `phases.build.lastError = "[error details]"`, increment `retries.build`
 - Read `retries.build` from progress file — if >= 3, STOP and report to user
-- Otherwise retry the build subagent with error details
+- Otherwise retry the build subagent with: "Check `git log --oneline` in the output directory and continue from the last checkpoint. Error: [details]"
 
 **If validation passes:** Update progress file:
 - Set `phases.build.status = "complete"`, `currentPhase = "verify"`, `gates.gate3.passed = true`

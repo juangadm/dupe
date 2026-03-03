@@ -16,6 +16,37 @@ They are banned entirely — no exceptions.
 **The only acceptable Bash commands are:**
 - `npx serve -l [port]` (serve the clone)
 - `ls`, `mkdir`, `cp` (file management)
+- `git init`, `git add`, `git commit` (build checkpoints)
+
+---
+
+## Build Checkpoints
+
+Initialize git in the output directory to create rollback points during the build:
+
+```bash
+cd /tmp/dupe-test-{domain}/
+git init
+git commit --allow-empty -m "init: empty clone directory"
+```
+
+After each major build step (4.2 through 4.8), commit the current state:
+
+```bash
+git add -A && git commit -m "checkpoint: {step description}"
+```
+
+Checkpoint schedule:
+- After Step 4.2 (design tokens): `"checkpoint: design tokens (variables.css)"`
+- After Step 4.3 (layout shell): `"checkpoint: layout shell"`
+- After Step 4.5 (images + SVGs): `"checkpoint: images and SVG icons"`
+- After Step 4.6 (fonts): `"checkpoint: font imports"`
+- After Step 4.7 (interactions): `"checkpoint: interactions (main.js)"`
+- After Step 4.8 (value audit): `"checkpoint: post-audit fixes"`
+
+**Why?** If the build subagent fails mid-run, `git log --oneline` shows exactly
+where it stopped. On retry, the subagent can `git log` and continue from the
+last checkpoint instead of rebuilding from scratch.
 
 ---
 
