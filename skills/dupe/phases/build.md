@@ -21,12 +21,13 @@ They are banned entirely — no exceptions.
 
 ## Inputs
 
-Before starting, **Read the scope file** specified in your instructions header.
+Before starting, **Read the scope file** (JSON) specified in your instructions header.
 It contains:
-- Domain name
-- Pages to build (with URL paths)
-- Output directory path
-- Extraction JSON file path
+- `domain` — domain name
+- `pages` — array of pages to build (each with `name`, `urlPath`)
+- `outputDirectory` — where to write HTML/CSS/JS files
+- `extractionJson` — path to the extraction data file
+- `scriptsDirectory` — absolute path to scripts
 
 **Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
 - Verify `phases.extract.status == "complete"` — if not, STOP: "Extraction not complete. Cannot build."

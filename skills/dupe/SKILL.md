@@ -129,36 +129,25 @@ Store the resolved directory path. Subagents will use this to find scripts.
 
 Parse the domain from the URL: `{domain}` = hostname without `www.` prefix.
 
-Write scope to `/tmp/dupe-scope-{domain}.md`:
+Write scope to `/tmp/dupe-scope-{domain}.json`:
 
-```markdown
-# Dupe Scope — {domain}
-
-## Target URL
-{url}
-
-## Domain
-{domain}
-
-## Scripts Directory
-{resolved_scripts_path}
-
-## Extraction JSON
-/tmp/dupe-extraction-{domain}.json
-
-## Output Directory
-/tmp/dupe-test-{domain}/
-
-## Pages
-- Page 1: {name} — {url_path}
-- Page 2: {name} — {url_path}
-- Page 3: {name} — {url_path}
-
-## Interaction Depth Matrix
-| Page | Content Depth | Interaction Depth | Notes |
-|------|--------------|-------------------|-------|
-| ... | ... | ... | ... |
+```json
+{
+  "domain": "{domain}",
+  "url": "{url}",
+  "scriptsDirectory": "{resolved_scripts_path}",
+  "extractionJson": "/tmp/dupe-extraction-{domain}.json",
+  "outputDirectory": "/tmp/dupe-test-{domain}/",
+  "progressFile": "/tmp/dupe-progress-{domain}.json",
+  "pages": [
+    { "name": "{name}", "urlPath": "{url_path}", "interactionDepth": 2, "contentDepth": "scroll full page", "notes": "" }
+  ]
+}
 ```
+
+**Why JSON?** Models are less likely to corrupt structured JSON than free-form
+Markdown. The scope file is the single source of truth for every subagent —
+structural integrity matters.
 
 ---
 
@@ -230,13 +219,13 @@ Delegate extraction to a subagent with a fresh context window.
 
 ```
 Domain: {domain}
-Scope file: /tmp/dupe-scope-{domain}.md
+Scope file: /tmp/dupe-scope-{domain}.json
 Progress file: /tmp/dupe-progress-{domain}.json
 Scripts directory: {resolved_scripts_path}
 Extraction JSON: /tmp/dupe-extraction-{domain}.json
 Original URL: {url}
 
-Read the scope file first to understand pages, interaction depth, and file paths.
+Read the scope file (JSON) first to understand pages, interaction depth, and file paths.
 Read the progress file to check which pages are already complete — skip them.
 Then follow the instructions below to extract all pages.
 
@@ -290,14 +279,14 @@ Delegate the build to a subagent with a fresh context window.
 
 ```
 Domain: {domain}
-Scope file: /tmp/dupe-scope-{domain}.md
+Scope file: /tmp/dupe-scope-{domain}.json
 Progress file: /tmp/dupe-progress-{domain}.json
 Scripts directory: {resolved_scripts_path}
 Extraction JSON: /tmp/dupe-extraction-{domain}.json
 Output directory: /tmp/dupe-test-{domain}/
 Original URL: {url}
 
-Read the scope file first to understand pages and file paths.
+Read the scope file (JSON) first to understand pages and file paths.
 Read the progress file to verify extraction is complete before building.
 Then read the extraction JSON and follow the instructions below to build the clone.
 
@@ -350,14 +339,14 @@ Delegate verification to a subagent with a fresh context window.
 
 ```
 Domain: {domain}
-Scope file: /tmp/dupe-scope-{domain}.md
+Scope file: /tmp/dupe-scope-{domain}.json
 Progress file: /tmp/dupe-progress-{domain}.json
 Scripts directory: {resolved_scripts_path}
 Extraction JSON: /tmp/dupe-extraction-{domain}.json
 Clone directory: /tmp/dupe-test-{domain}/
 Original URL: {url}
 
-Read the scope file first to understand pages and file paths.
+Read the scope file (JSON) first to understand pages and file paths.
 Read the progress file to verify extract and build phases are complete.
 Then follow the instructions below to verify the clone against the original.
 

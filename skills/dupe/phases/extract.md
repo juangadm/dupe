@@ -49,12 +49,13 @@ something in a JSON file, use Read and reason about the contents yourself.
 
 ## Inputs
 
-Before starting, **Read the scope file** specified in your instructions header.
+Before starting, **Read the scope file** (JSON) specified in your instructions header.
 It contains:
-- Domain name
-- Pages to extract (with URL paths)
-- Interaction depth matrix (per page)
-- Scripts directory path (absolute)
+- `domain` — domain name
+- `pages` — array of pages to extract (each with `name`, `urlPath`, `interactionDepth`, `contentDepth`)
+- `scriptsDirectory` — absolute path to extraction scripts
+- `extractionJson` — output file path
+- `outputDirectory` — clone output path
 
 **Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
 - Skip pages where `phases.extract.pages.{page}.structure == "complete"` AND `phases.extract.pages.{page}.visual == "complete"`

@@ -33,14 +33,14 @@ reasoning. You are an LLM — you can do arithmetic.
 
 ## Inputs
 
-Before starting, **Read the scope file** specified in your instructions header.
+Before starting, **Read the scope file** (JSON) specified in your instructions header.
 It contains:
-- Domain name
-- Pages to verify (with URL paths)
-- Clone directory path
-- Extraction JSON file path
-- Original site URL
-- Scripts directory path
+- `domain` — domain name
+- `pages` — array of pages to verify (each with `name`, `urlPath`)
+- `outputDirectory` — clone directory path
+- `extractionJson` — path to extraction data
+- `url` — original site URL
+- `scriptsDirectory` — absolute path to verification scripts
 
 **Read the progress file** (`/tmp/dupe-progress-{domain}.json`).
 - Verify `phases.extract.status == "complete"` AND `phases.build.status == "complete"` — if either is incomplete, STOP: "Prerequisites not complete. Cannot verify."
