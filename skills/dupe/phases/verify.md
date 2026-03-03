@@ -69,6 +69,8 @@ If output directory is missing `package.json` or `src/App.tsx` → STOP: "Build 
 | Heading count diff | 0 | 1–2 | >2 |
 | Interactive element diff | ≤2 | 3–5 | >5 |
 | Landmark position diff | <10px | 10–25px | >25px |
+| SVG count diff          | ≤2   | 3–5    | >5     |
+| SVG fabrication detected | 0    | —      | any >0 |
 
 WARN means: document the gap, proceed if explainable (e.g., font substitution shifts
 layout by 3px). FAIL means: fix before marking verified.
@@ -118,6 +120,43 @@ For EACH page in the scope:
 - Compare `forms` — field count and types must match
 
 Print a structural diff summary showing PASS/WARN/FAIL for each metric.
+
+## Step 5.2.1: SVG Integrity Check (per page)
+
+For EACH page:
+
+1. **Read** the extraction JSON — count entries in `svgIcons` array
+2. Navigate Playwright to the **clone** URL
+3. Run `browser_evaluate` to count SVGs and sample their content:
+   ```js
+   const svgs = Array.from(document.querySelectorAll('svg'));
+   return {
+     count: svgs.length,
+     sample: svgs.slice(0, 5).map(s => ({
+       outerHTML: s.outerHTML.slice(0, 300),
+       viewBox: s.getAttribute('viewBox'),
+       parentText: s.parentElement?.textContent?.trim().slice(0, 50) || ''
+     }))
+   };
+   ```
+4. **Compare counts:** `|extraction svgIcons instances total - clone SVG count|`
+   Apply SVG count diff threshold.
+5. **Fabrication detection:** For each sampled SVG from the clone, check if its
+   first 200 chars of `outerHTML` match ANY entry in the extraction JSON's `svgIcons`.
+   If a clone SVG doesn't match any extraction entry, it was fabricated.
+   - Check for known fabrication signatures: `lucide`, `feather`, `heroicon`,
+     `stroke-width="2"` with simple geometric paths
+   - Any fabricated SVG = FAIL. Report: "FABRICATION DETECTED: [N] SVGs in clone
+     do not match extraction data."
+6. **Print SVG integrity summary:**
+   ```
+   SVG INTEGRITY — [page name]
+   - Extraction SVG count: [N] unique ([M] total instances)
+   - Clone SVG count: [N]
+   - Count diff: [N] → PASS/WARN/FAIL
+   - Sample match: [N]/5 matched extraction → PASS/FAIL
+   - Fabrication detected: [yes/no] → PASS/FAIL
+   ```
 
 ## Step 5.3: Visual Fingerprint Comparison (per page)
 
@@ -206,6 +245,10 @@ For EACH page, print a structured report:
 - Interactive elements: original=[N] clone=[N] → PASS/WARN/FAIL
 - Text digest match: [N]/20 first entries match → PASS/WARN/FAIL
 - Nav links: original=[N] clone=[N] → PASS/WARN/FAIL
+
+### SVGs (Step 5.2.1)
+- SVG count: extraction=[N] clone=[N] → PASS/WARN/FAIL
+- Fabrication check: [N] fabricated → PASS/FAIL
 
 ### Visual (Step 5.3)
 - Color grid match: [N]% → PASS/WARN/FAIL
