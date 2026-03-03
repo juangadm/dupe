@@ -27,7 +27,11 @@ They are banned entirely — no exceptions. Writing a script to a temp file and
 running it IS an inline script. Piping a heredoc to an interpreter IS an inline script.
 
 **The only acceptable Bash commands are:**
-- `npx serve -l [port]` (serve the clone)
+- `npm create vite@latest` (scaffold project)
+- `npm install`, `npm install react-router-dom` (install dependencies)
+- `npx vite --port [port]` (serve the clone via Vite dev server)
+- `npx serve -l [port]` (serve the clone — fallback for static assets)
+- `rm` (delete Vite boilerplate files during scaffold cleanup)
 - `ls`, `mkdir`, `cp`, `wc` (file management)
 - `git` commands (if committing)
 
@@ -329,13 +333,14 @@ Wait for the subagent to complete.
 ## GATE 3: Build Validation
 
 1. `ls /tmp/dupe-test-{domain}/` — directory exists?
-2. Count HTML files — matches page count from scope?
-3. Check for CSS files — total CSS size > 5KB?
-4. Check for JS files — `main.js` exists and > 1KB?
-5. Run `git log --oneline` in the output directory — verify checkpoint commits exist
-6. **Content integrity:** Read the first 20 lines of each HTML file — verify
-   `<!DOCTYPE` or `<html` is present. A file that starts with something else
-   (e.g., raw JSON, error text) is not valid HTML output.
+2. `package.json` exists in the output directory?
+3. Count `.tsx` files in `src/pages/` — matches page count from scope?
+4. `src/App.tsx` exists and is > 500 bytes?
+5. `src/main.tsx` exists?
+6. Read `src/App.tsx` — verify it imports `react-router-dom`
+7. Read `index.html` — verify it contains `<div id="root">`
+8. Check for CSS files — total CSS size > 5KB?
+9. Run `git log --oneline` in the output directory — verify checkpoint commits exist
 
 **If validation fails:**
 - Update progress: `phases.build.lastError = "[error details]"`, increment `retries.build`
@@ -349,9 +354,10 @@ Print:
 ```
 GATE 3 PASSED:
 - Output directory: /tmp/dupe-test-{domain}/
-- HTML files: [list]
+- Framework: Vite + React + TypeScript
+- Page components: [list .tsx files in src/pages/]
 - CSS size: [N]KB
-- JS size: [N]KB
+- Router: react-router-dom confirmed in App.tsx
 ```
 
 ---
@@ -410,7 +416,7 @@ to the user:
 /tmp/dupe-test-{domain}/
 
 ### Serve
-npx serve -l 8787 /tmp/dupe-test-{domain}/
+cd /tmp/dupe-test-{domain}/ && npx vite --port 8787
 
 ### Verification Summary
 [paste verification report from subagent]
