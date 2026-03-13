@@ -482,3 +482,53 @@ Lesson 49). 3 required structural changes:
 
 **SKILL.md changes:** `extract-visual.js` parentShape field, `build.md` Step 4.4
 straddle + padding rules, `build.md` Step 4.5 parentShape wrapping rule.
+
+---
+
+## Lesson 23: CSS :hover rules must be read from stylesheets, not computed style
+
+**Source:** salesdemo.scoreplay.io clone (March 2026)
+
+`extract-hover.js` calls `getComputedStyle()` after `browser_hover()` to capture
+hover state colors. This is unreliable — CSS `:hover` pseudo-classes don't always
+get reflected in `getComputedStyle()` output when triggered programmatically.
+
+**What went wrong:** Clone used `rgba(255,255,255,0.08)` for all nav hover states.
+Original CSS rules use `rgba(229,231,239,0.12)` for nav items and
+`rgba(255,255,255,0.04)` for expandable section items — different per element type.
+
+**Fix:** Add a second extraction step after `browser_hover()`: scan
+`document.styleSheets` directly for `:hover` rules matching the element's
+generated class names. This gives exact CSS values regardless of whether computed
+style updates. Use both methods — stylesheet scan is authoritative, computed style
+is a fallback validator.
+
+**SKILL.md change needed:** Step 2.3 (Hover State Extraction) — add stylesheet
+scan as primary method, `getComputedStyle()` as secondary.
+
+---
+
+## Lesson 24: Sidebar background is lighter than main content, not darker
+
+**Source:** salesdemo.scoreplay.io clone (March 2026)
+
+In dark-themed SaaS dashboards, the instinct is that the sidebar is the "darker"
+element. This is wrong for many apps including ScorePlay — the sidebar uses the
+**secondary background** (slightly lighter surface) while the main content area
+uses the **primary background** (darker base).
+
+**What went wrong:** Both sidebar and main content were assigned `--bg-primary`
+(`rgb(18,20,29)`) — identical, no visual separation.
+
+**Fix applied:** Sidebar → `--bg-secondary` (`rgb(24,26,37)`), main → `--bg-primary`.
+
+**Root cause in extraction:** `extract-visual.js` captured both elements as the
+same color because the outer MUI container reported `rgb(18,20,29)`. The subtle
+layering (semi-transparent surfaces stacked on the sidebar) was missed. Fix: for
+the sidebar background, walk all children and check for non-transparent backgrounds
+on inner wrappers, or pixel-sample via canvas at a known empty coordinate inside
+the sidebar to get the rendered composite color.
+
+**SKILL.md change needed:** Step 2.2 (Visual Extraction) — add sidebar background
+validation: if sidebar and main content report the same background, pixel-sample
+both to verify they're truly identical before accepting.
