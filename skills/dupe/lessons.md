@@ -532,3 +532,26 @@ the sidebar to get the rendered composite color.
 **SKILL.md change needed:** Step 2.2 (Visual Extraction) — add sidebar background
 validation: if sidebar and main content report the same background, pixel-sample
 both to verify they're truly identical before accepting.
+
+## Lesson 51: Single page first, multi-page later
+
+**Source:** try.ramp.com clone (March 2026, Opus 1M context)
+
+Cloning 3 pages simultaneously (Overview, Expenses, Travel) produced mediocre results
+across the board. The Travel page was notably poor — extraction data spread thin across
+3 pages, the build agent rushed through each, and verification was superficial.
+
+The better model: clone ONE page + shared layout (sidebar/nav) perfectly first. The user
+can add pages incrementally ("now add expenses") after verifying the first page is solid.
+
+**Why this matters:**
+- Extraction gets full context budget for one page's depth (hover states, interactions,
+  scroll behaviors) instead of 1/3 of the budget per page
+- Build agent can spend full attention on one page component, not juggling three
+- Verification is thorough for one page instead of superficial for three
+- Matches real usage: users care most about ONE page for their prototype
+
+**SKILL.md change needed:** Phase 0 should default to single-page scope. The menu should
+offer: (1) One page + sidebar, (2) Add another page (only after first is verified).
+Multi-page should never be the default option. Remove "Multi-page app" as an initial
+choice — it should only be available as a follow-up command.
