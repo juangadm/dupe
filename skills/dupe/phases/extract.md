@@ -97,17 +97,16 @@ in 5-10 layers of `<div>` with generated class names. A deep recursive
 `extractElement()` produces 300K+ characters of wrapper noise. The TreeWalker
 approach bypasses this entirely by finding text nodes directly.
 
-### Multi-page extraction order
-
-For multi-page scope:
+### Extraction order
 
 1. Extract shared layout FIRST (sidebar, header, banner) — only once
-2. Extract page-specific content for the CURRENT page
-3. Navigate to the NEXT page in the checklist
-4. Repeat step 2 for each page
-5. Only after ALL pages are extracted → proceed to Extraction Gate
+2. Extract page-specific content for the target page
+3. Since we're only extracting ONE page, spend maximum depth on every interaction:
+   click every tab, open every dropdown, scroll every table, extract every hover state
+4. Only after the page is fully extracted → proceed to Extraction Gate
 
-**EXTRACT ALL PAGES BEFORE ANY BUILDING.** Do NOT skip pages.
+**Depth over breadth.** With a single page, you have the full context budget to
+extract every detail. No rushing, no shortcuts.
 
 ### Step 2.0: Load Extraction Scripts
 
