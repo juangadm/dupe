@@ -14,9 +14,15 @@ You are the orchestrator for a pixel-perfect website cloning pipeline. You run
 Phases 0–1 inline (scope + navigation), then delegate Phases 2–3, 4, and 5 to
 subagents via the Agent tool. Each subagent gets a fresh context window.
 
-**Why subagents?** A 3-page clone produces 200-400KB of extraction data. Loading
-this into a single context window repeatedly across 5 phases exhausts context by
-Phase 2. Subagents isolate each phase with a fresh ~200K context window.
+**Single page first.** Always clone ONE page + shared layout (sidebar/nav) first.
+Get it pixel-perfect and verified before adding more pages. Multi-page clones
+spread extraction thin, rush the build, and produce mediocre results. One great
+page is worth more than three bad ones. Additional pages are added incrementally
+via follow-up commands after the first page passes verification.
+
+**Why subagents?** Even a single-page clone produces 50-100KB+ of extraction data.
+Subagents isolate each phase with a fresh context window so extraction data doesn't
+crowd out build or verification reasoning.
 
 ---
 
@@ -71,36 +77,41 @@ PREFLIGHT PASSED:
 
 Before navigating to any URL, ask the user:
 
-> "What do you want to clone?
+> "Which page do you want to clone? I'll clone this one page + the shared layout
+> (sidebar, nav, header) with full interaction fidelity. Once it's verified, you
+> can add more pages incrementally.
 >
-> 1. **Full page** — One complete page with all interactions (dropdowns, modals, tabs)
-> 2. **Multi-page app** — Sidebar/nav + multiple pages with all interactions
->
-> Which pages and sections should I include?"
+> What's the page URL or name?"
+
+**Multi-page is NOT supported.** Clone one page at a time. If the user asks for
+multiple pages, respond:
+
+> "Dupe clones one page at a time for maximum fidelity. Which page should I start with?"
 
 ### After the user answers, write the PAGE CHECKLIST:
 
 ```
 ## Dupe Page Checklist
-- Scope: [Full page / Multi-page app]
+- Scope: Single page + shared layout
 - Shared layout: [ ] extracted  [ ] interactions
-- Page 1 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
-- Page 2 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
-- Page 3 [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
+- Page [name/URL]: [ ] extracted  [ ] interactions  [ ] built  [ ] verified
 ```
 
 Print this checklist to the user.
 
 ### Interaction Depth Matrix
 
-For each page, define depth BEFORE extraction begins:
+Define depth for the page BEFORE extraction begins:
 
 | Page | Content Depth | Interaction Depth | Notes |
 |------|--------------|-------------------|-------|
-| Example | Scroll full page | Depth 2 | Each tab shows different content |
+| [page name] | scroll full page | Depth 2 | Every tab, dropdown, form variant |
 
 **Content Depth:** "visible only", "scroll full page", "scroll table fully"
 **Interaction Depth:** Depth 0 (static), Depth 1 (click each), Depth 2 (all variants), Depth 3 (multi-step chains)
+
+**Default for single-page clones: Depth 2 + scroll full page.** Since we're only
+extracting one page, we can afford maximum depth on every interaction.
 
 ### Initialize Progress File
 
@@ -281,8 +292,8 @@ Lightweight checks — never read the full extraction JSON into main context.
    JSON. Verify both keys exist. If the site has visible UI (not a text-only page),
    `svgIcons` should have > 0 entries. If `svgIcons` is empty or missing, WARN:
    "No SVG icons extracted — visual fidelity will be degraded. Consider re-running extraction."
-6. **Size sanity:** If scope has multiple pages and extraction JSON is < 50KB, WARN:
-   "Extraction is unusually small for a multi-page site. Verify svgIcons and images arrays."
+6. **Size sanity:** If extraction JSON is < 20KB for a single page, WARN:
+   "Extraction is unusually small. Verify svgIcons and images arrays."
 
 **If validation fails:**
 - Update progress: `phases.extract.lastError = "[error details]"`, increment `retries.extract`
@@ -431,9 +442,11 @@ cd /tmp/dupe-test-{domain}/ && npx vite --port 8787
 
 ### Page Checklist
 - Shared layout: ✓ extracted  ✓ interactions  ✓ built
-- Page 1 [name]: ✓ all phases complete (grid: [N]%, interactions: [N]/[N])
-- Page 2 [name]: ✓ all phases complete (grid: [N]%, interactions: [N]/[N])
-- Page 3 [name]: ✓ all phases complete (grid: [N]%, interactions: [N]/[N])
+- [page name]: ✓ all phases complete (grid: [N]%, interactions: [N]/[N])
+
+### Add More Pages
+To add another page to this clone, run:
+/dupe:dupe {domain}/next-page
 ```
 
 ---
@@ -468,6 +481,10 @@ build without re-extracting.
 ## Quick Reference
 
 ```
-/dupe:dupe https://example.com          # Clone a page
+/dupe:dupe https://example.com          # Clone one page + shared layout
 /dupe:dupe https://example.com/pricing  # Clone a specific page
 ```
+
+**Adding pages:** After the first page is verified, run dupe again with the next
+page URL. The existing clone directory, extraction cache, and shared layout are
+reused — only the new page is extracted and added.
